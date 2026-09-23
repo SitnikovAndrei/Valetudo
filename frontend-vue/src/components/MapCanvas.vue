@@ -3,10 +3,17 @@ import {onBeforeUnmount, onMounted, ref, watch} from "vue";
 import type {RawMapData, RawMapEntity} from "../../../frontend/src/api/RawMapData";
 import {RawMapEntityType, RawMapLayerType} from "../../../frontend/src/api/RawMapData";
 import {MapLayerManager} from "../../../frontend/src/map/MapLayerManager";
+import robotIcon from "../../../frontend/src/map/structures/icons/robot.svg";
+import chargerIcon from "../../../frontend/src/map/structures/icons/charger.svg";
+import targetIcon from "../../../frontend/src/map/structures/icons/marker.svg";
+import obstacleIcon from "../../../frontend/src/map/structures/icons/obstacle.svg";
 import {activated, aprilFools} from "../aprilFools";
 import {i18n, translate} from "../i18n";
+import {MapViewport, type Point} from "../map/MapViewport";
+import {MapGestures} from "../map/MapGestures";
+import {getSegmentLabelAtPoint, getSegmentLabelPoint} from "../map/SegmentLabelHitTest";
+import {prepareMapWorkerInput} from "../map/MapWorkerInput";
 
-type Point = {x: number; y: number};
 type MapZone = {a: Point; b: Point};
 type Mode = "segments" | "zones" | "goto" | "pan" | "line" | "rectangle";
 const props = defineProps<{
@@ -30,28 +37,38 @@ const emit = defineEmits<{
 
 const canvas = ref<HTMLCanvasElement>();
 const layers = new MapLayerManager();
-const pointers = new Map<number, Point>();
+const viewport = new MapViewport();
+const gestures = new MapGestures();
 let observer: ResizeObserver | undefined;
-let dpr = 1;
-let scale = 1;
-let fitScale = 1;
-let offsetX = 0;
-let offsetY = 0;
-let initialized = false;
-let dragStart: Point | undefined;
-let dragCurrent: Point | undefined;
-let previousPointer: Point | undefined;
-let pinchDistance = 0;
-let pinchCenter: Point | undefined;
 let layerUpdate = Promise.resolve();
 let disposed = false;
 let draggedEntity: {index: number; start: Point; points: number[]} | undefined;
+const icons = {
+    robot: new Image(),
+    charger: new Image(),
+    target: new Image(),
+    obstacle: new Image()
+};
+icons.robot.src = robotIcon;
+icons.charger.src = chargerIcon;
+icons.target.src = targetIcon;
+icons.obstacle.src = obstacleIcon;
+Object.values(icons).forEach(icon => { icon.onload = () => draw(); });
+
+function drawIcon(ctx: CanvasRenderingContext2D, icon: HTMLImageElement, x: number, y: number, angle = 0) {
+    if (!icon.complete || !icon.naturalWidth) return;
+    const size = 30 * viewport.dpr;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const position = viewport.toCanvasPoint({x, y});
+    ctx.translate(position.x, position.y);
+    ctx.rotate(angle * Math.PI / 180);
+    ctx.drawImage(icon, -size / 2, -size / 2, size, size);
+    ctx.restore();
+}
 
 function mapPoint(screen: Point): Point {
-    return {
-        x: Math.max(0, Math.min(props.map.size.x / props.map.pixelSize, (screen.x * dpr - offsetX) / scale)),
-        y: Math.max(0, Math.min(props.map.size.y / props.map.pixelSize, (screen.y * dpr - offsetY) / scale))
-    };
+    return viewport.toMapPoint(screen, props.map);
 }
 
 function eventPoint(event: PointerEvent): Point {
@@ -60,26 +77,7 @@ function eventPoint(event: PointerEvent): Point {
 }
 
 function fitMap() {
-    const element = canvas.value;
-    if (!element) return;
-    const bounds = props.map.layers.reduce((box, layer) => ({
-        minX: Math.min(box.minX, layer.dimensions.x.min),
-        minY: Math.min(box.minY, layer.dimensions.y.min),
-        maxX: Math.max(box.maxX, layer.dimensions.x.max),
-        maxY: Math.max(box.maxY, layer.dimensions.y.max)
-    }), {
-        minX: props.map.size.x / props.map.pixelSize,
-        minY: props.map.size.y / props.map.pixelSize,
-        maxX: 0,
-        maxY: 0
-    });
-    const width = Math.max(1, bounds.maxX - bounds.minX);
-    const height = Math.max(1, bounds.maxY - bounds.minY);
-    scale = Math.max(0.01, Math.min(element.width / (width * 1.1), element.height / (height * 1.1)));
-    fitScale = scale;
-    offsetX = (element.width - width * scale) / 2 - bounds.minX * scale;
-    offsetY = (element.height - height * scale) / 2 - bounds.minY * scale;
-    initialized = true;
+    viewport.fit(props.map);
 }
 
 function resize() {
@@ -87,20 +85,12 @@ function resize() {
     if (!element) return;
     const rect = element.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    const oldWidth = element.width;
-    const oldHeight = element.height;
-    dpr = window.devicePixelRatio || 1;
-    element.width = Math.round(rect.width * dpr);
-    element.height = Math.round(rect.height * dpr);
-    if (!initialized) {
-        fitMap();
-    } else if (oldWidth && oldHeight) {
-        const factor = Math.min(element.width / oldWidth, element.height / oldHeight);
-        scale *= factor;
-        fitScale *= factor;
-        offsetX = (offsetX - oldWidth / 2) * factor + element.width / 2;
-        offsetY = (offsetY - oldHeight / 2) * factor + element.height / 2;
-    }
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.round(rect.width * dpr);
+    const height = Math.round(rect.height * dpr);
+    if (element.width !== width) element.width = width;
+    if (element.height !== height) element.height = height;
+    viewport.resize(width, height, dpr, props.map);
     draw();
 }
 
@@ -149,32 +139,14 @@ function drawEntities(ctx: CanvasRenderingContext2D) {
                 polygon(ctx, entity);
                 break;
             case RawMapEntityType.RobotPosition:
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate((entity.metaData.angle ?? 0) * Math.PI / 180);
-                ctx.fillStyle = "#f7a844";
-                ctx.beginPath();
-                ctx.arc(0, 0, 5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = "#19352c";
-                ctx.beginPath();
-                ctx.moveTo(0, -4);
-                ctx.lineTo(-2, 0);
-                ctx.lineTo(2, 0);
-                ctx.closePath();
-                ctx.fill();
-                ctx.restore();
+                drawIcon(ctx, icons.robot, x, y, entity.metaData.angle ?? 0);
                 break;
             case RawMapEntityType.ChargerLocation:
-                ctx.fillStyle = "#6ccfa0";
-                ctx.fillRect(x - 5, y - 5, 10, 10);
+                drawIcon(ctx, icons.charger, x, y);
                 break;
             case RawMapEntityType.GoToTarget:
             case RawMapEntityType.Obstacle:
-                ctx.fillStyle = entity.type === RawMapEntityType.Obstacle ? "#ed6772" : "#f7a844";
-                ctx.beginPath();
-                ctx.arc(x, y, 3, 0, Math.PI * 2);
-                ctx.fill();
+                drawIcon(ctx, entity.type === RawMapEntityType.Obstacle ? icons.obstacle : icons.target, x, y);
                 break;
         }
     }
@@ -186,8 +158,7 @@ function drawSelections(ctx: CanvasRenderingContext2D) {
     ctx.font = "6px IBM Plex Sans, sans-serif";
     for (const layer of props.map.layers) {
         if (layer.type !== RawMapLayerType.Segment || !layer.metaData.segmentId) continue;
-        const x = layer.dimensions.x.avg;
-        const y = layer.dimensions.y.avg;
+        const {x, y} = getSegmentLabelPoint(layer);
         const selected = props.selectedSegmentIds.includes(layer.metaData.segmentId);
         ctx.fillStyle = selected ? "#f7a844" : "#ffffff";
         ctx.beginPath();
@@ -201,9 +172,10 @@ function drawSelections(ctx: CanvasRenderingContext2D) {
     for (const zone of props.zones) {
         ctx.strokeRect(zone.a.x, zone.a.y, zone.b.x - zone.a.x, zone.b.y - zone.a.y);
     }
-    if ((props.mode === "zones" || props.mode === "rectangle" || props.mode === "line") && dragStart && dragCurrent) {
-        const a = mapPoint(dragStart);
-        const b = mapPoint(dragCurrent);
+    const preview = gestures.preview;
+    if ((props.mode === "zones" || props.mode === "rectangle" || props.mode === "line") && preview) {
+        const a = mapPoint(preview.start);
+        const b = mapPoint(preview.current);
         if (props.mode === "line") {ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();}
         else ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
     }
@@ -226,10 +198,10 @@ function drawSelections(ctx: CanvasRenderingContext2D) {
 function draw() {
     const element = canvas.value;
     const ctx = element?.getContext("2d");
-    if (!element || !ctx || !initialized) return;
+    if (!element || !ctx || !viewport.initialized) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, element.width, element.height);
-    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+    ctx.setTransform(viewport.scale, 0, 0, viewport.scale, viewport.offsetX, viewport.offsetY);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(layers.getCanvas(), 0, 0);
     ctx.imageSmoothingEnabled = true;
@@ -240,46 +212,39 @@ function draw() {
         ctx.fillStyle = props.paletteMode === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(72, 72, 72, 0.5)";
         ctx.textAlign = "right";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `${24 * dpr}px IBM Plex Sans, sans-serif`;
-        ctx.fillText(translate("Activate Valetudo"), element.width - 32 * dpr, element.height - 80 * dpr);
-        ctx.font = `${14 * dpr}px IBM Plex Sans, sans-serif`;
-        ctx.fillText(translate("Go to Settings to activate Valetudo."), element.width - 32 * dpr, element.height - 56 * dpr);
+        ctx.font = `${24 * viewport.dpr}px IBM Plex Sans, sans-serif`;
+        ctx.fillText(translate("Activate Valetudo"), element.width - 32 * viewport.dpr, element.height - 80 * viewport.dpr);
+        ctx.font = `${14 * viewport.dpr}px IBM Plex Sans, sans-serif`;
+        ctx.fillText(translate("Go to Settings to activate Valetudo."), element.width - 32 * viewport.dpr, element.height - 56 * viewport.dpr);
     }
 }
 
 function renderLayers() {
     layerUpdate = layerUpdate.then(async () => {
         if (disposed) return;
-        layers.setSelectedSegmentIds(props.selectedSegmentIds);
-        await layers.draw(props.map, props.paletteMode);
+        const input = prepareMapWorkerInput(props.map, props.selectedSegmentIds);
+        layers.setSelectedSegmentIds(input.selectedSegmentIds);
+        await layers.draw(input.map, props.paletteMode);
         if (!disposed) draw();
     }).catch(() => { /* A later map update can retry rendering. */ });
-}
-
-function zoom(factor: number, at: Point) {
-    const nextScale = Math.max(fitScale * 0.3, Math.min(fitScale * 30, scale * factor));
-    const world = mapPoint(at);
-    scale = nextScale;
-    offsetX = at.x * dpr - world.x * scale;
-    offsetY = at.y * dpr - world.y * scale;
-    draw();
 }
 
 function onWheel(event: WheelEvent) {
     event.preventDefault();
     const rect = canvas.value!.getBoundingClientRect();
-    zoom(event.deltaY < 0 ? 1.15 : 1 / 1.15, {x: event.clientX - rect.left, y: event.clientY - rect.top});
+    viewport.zoom(event.deltaY < 0 ? 1.15 : 1 / 1.15, {x: event.clientX - rect.left, y: event.clientY - rect.top});
+    draw();
 }
 
 function onKeyDown(event: KeyboardEvent) {
     const element = canvas.value;
     if (!element) return;
-    if (event.key === "+" || event.key === "=") zoom(1.15, {x: element.clientWidth / 2, y: element.clientHeight / 2});
-    else if (event.key === "-") zoom(1 / 1.15, {x: element.clientWidth / 2, y: element.clientHeight / 2});
-    else if (event.key === "ArrowLeft") offsetX += 30 * dpr;
-    else if (event.key === "ArrowRight") offsetX -= 30 * dpr;
-    else if (event.key === "ArrowUp") offsetY += 30 * dpr;
-    else if (event.key === "ArrowDown") offsetY -= 30 * dpr;
+    if (event.key === "+" || event.key === "=") viewport.zoom(1.15, {x: element.clientWidth / 2, y: element.clientHeight / 2});
+    else if (event.key === "-") viewport.zoom(1 / 1.15, {x: element.clientWidth / 2, y: element.clientHeight / 2});
+    else if (event.key === "ArrowLeft") viewport.pan({x: 30, y: 0});
+    else if (event.key === "ArrowRight") viewport.pan({x: -30, y: 0});
+    else if (event.key === "ArrowUp") viewport.pan({x: 0, y: 30});
+    else if (event.key === "ArrowDown") viewport.pan({x: 0, y: -30});
     else if (event.key === "0") fitMap();
     else return;
     event.preventDefault();
@@ -289,13 +254,10 @@ function onKeyDown(event: KeyboardEvent) {
 function onPointerDown(event: PointerEvent) {
     canvas.value?.setPointerCapture(event.pointerId);
     const point = eventPoint(event);
-    pointers.set(event.pointerId, point);
-    dragStart = point;
-    dragCurrent = point;
-    previousPointer = point;
-    if (props.mode === "pan" && props.editableEntities?.length && pointers.size === 1) {
+    gestures.startPointer(event.pointerId, point);
+    if (props.mode === "pan" && props.editableEntities?.length && gestures.pointerCount === 1) {
         const world = mapPoint(point);
-        const tolerance = 12 * dpr / scale;
+        const tolerance = 12 * viewport.worldUnitsPerCssPixel;
         for (let index = props.editableEntities.length - 1; index >= 0; index--) {
             const entity = props.editableEntities[index];
             const xs = entity.points.filter((_, coordinate) => coordinate % 2 === 0).map(value => value / props.map.pixelSize);
@@ -306,31 +268,20 @@ function onPointerDown(event: PointerEvent) {
             }
         }
     }
-    if (pointers.size === 2) {
+    if (gestures.pointerCount === 2) {
+        if (draggedEntity) emit("entity-updated", draggedEntity.index, draggedEntity.points);
         draggedEntity = undefined;
-        const [a, b] = [...pointers.values()];
-        pinchDistance = Math.hypot(a.x - b.x, a.y - b.y);
-        pinchCenter = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
     }
 }
 
 function onPointerMove(event: PointerEvent) {
-    if (!pointers.has(event.pointerId)) return;
     const point = eventPoint(event);
-    pointers.set(event.pointerId, point);
-    if (pointers.size === 2) {
-        const [a, b] = [...pointers.values()];
-        const center = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
-        const distance = Math.hypot(a.x - b.x, a.y - b.y);
-        if (pinchCenter) {
-            offsetX += (center.x - pinchCenter.x) * dpr;
-            offsetY += (center.y - pinchCenter.y) * dpr;
-        }
-        if (pinchDistance) zoom(distance / pinchDistance, center);
-        pinchDistance = distance;
-        pinchCenter = center;
-        draw();
-    } else if (previousPointer) {
+    const gesture = gestures.movePointer(event.pointerId, point);
+    if (!gesture) return;
+    if (gesture.kind === "pinch") {
+        viewport.pan(gesture.pan);
+        viewport.zoom(gesture.factor, gesture.center);
+    } else {
         if (draggedEntity) {
             const current = mapPoint(point);
             const unit = props.map.pixelSize;
@@ -340,25 +291,21 @@ function onPointerMove(event: PointerEvent) {
             const xs = points.filter((_, index) => index % 2 === 0);
             const ys = points.filter((_, index) => index % 2 === 1);
             if (Math.min(...xs) >= 0 && Math.max(...xs) <= props.map.size.x && Math.min(...ys) >= 0 && Math.max(...ys) <= props.map.size.y) emit("entity-updated", draggedEntity.index, points);
-        } else if (["zones", "rectangle", "line"].includes(props.mode)) {
-            dragCurrent = point;
-        } else {
-            offsetX += (point.x - previousPointer.x) * dpr;
-            offsetY += (point.y - previousPointer.y) * dpr;
+        } else if (!(["zones", "rectangle", "line"].includes(props.mode) && !gesture.afterPinch)) {
+            viewport.pan({x: point.x - gesture.previous.x, y: point.y - gesture.previous.y});
         }
-        previousPointer = point;
-        draw();
     }
+    draw();
 }
 
 function onPointerUp(event: PointerEvent, cancelled = false) {
-    if (!pointers.has(event.pointerId)) return;
     const point = eventPoint(event);
-    const moved = dragStart ? Math.hypot(point.x - dragStart.x, point.y - dragStart.y) : 0;
+    const gesture = gestures.endPointer(event.pointerId, point, cancelled);
+    if (!gesture) return;
     if (cancelled && draggedEntity) emit("entity-updated", draggedEntity.index, draggedEntity.points);
-    if (!cancelled && !draggedEntity && pointers.size === 1) {
-        if (["zones", "rectangle", "line"].includes(props.mode) && dragStart && moved > 8) {
-            const a = mapPoint(dragStart);
+    if (!cancelled && !draggedEntity && !gesture.afterPinch && gestures.pointerCount === 0) {
+        if (["zones", "rectangle", "line"].includes(props.mode) && gesture.moved > 8) {
+            const a = mapPoint(gesture.start);
             const b = mapPoint(point);
             const shape = {
                 a: {x: Math.min(a.x, b.x), y: Math.min(a.y, b.y)},
@@ -366,22 +313,17 @@ function onPointerUp(event: PointerEvent, cancelled = false) {
             };
             if (props.mode === "zones") emit("zone-created", shape);
             else emit("shape-created", props.mode === "line" ? {a, b} : shape);
-        } else if (moved < 8 && props.mode === "segments") {
-            const p = mapPoint(point);
-            const id = layers.getIntersectingSegment(p.x, p.y);
+        } else if (gesture.tap && props.mode === "segments") {
+            const p = viewport.toWorldPoint(point);
+            const ctx = canvas.value?.getContext("2d");
+            if (ctx) ctx.font = "6px IBM Plex Sans, sans-serif";
+            const labelId = getSegmentLabelAtPoint(props.map.layers, p, label => ctx?.measureText(label).width ?? 0);
+            const id = labelId ?? layers.getIntersectingSegment(p.x, p.y);
             if (id) emit("segment-click", id);
-        } else if (moved < 8 && props.mode === "goto") {
+        } else if (gesture.tap && props.mode === "goto") {
             emit("point-selected", mapPoint(point));
         }
     }
-    pointers.delete(event.pointerId);
-    if (pointers.size < 2) {
-        pinchCenter = undefined;
-        pinchDistance = 0;
-    }
-    dragStart = undefined;
-    dragCurrent = undefined;
-    previousPointer = pointers.values().next().value;
     draggedEntity = undefined;
     draw();
 }

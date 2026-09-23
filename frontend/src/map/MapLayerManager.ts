@@ -1,5 +1,6 @@
 import {RawMapData} from "../api";
 import {PROCESS_LAYERS} from "./MapLayerManagerUtils";
+import {getSegmentAtPoint, SegmentLookupInfo} from "./SegmentLookup";
 
 type PaletteMode = "light" | "dark";
 
@@ -13,15 +14,9 @@ export class MapLayerManager {
     private mapLayerManagerWorkerAvailable = false;
     private mapLayerManagerWorkerLastNonce = "";
     private pendingCallback: (() => void) | undefined;
+    private pendingDraw: {data: RawMapData, paletteMode: PaletteMode} | undefined;
 
-    private segmentLookupInfo: {
-        data: Uint8ClampedArray,
-        width: number,
-        height: number,
-        top: number,
-        left: number,
-        idMapping: {[key: string]: string}
-    };
+    private segmentLookupInfo: SegmentLookupInfo;
     private selectedSegmentIds: string[];
 
     constructor() {
@@ -41,6 +36,14 @@ export class MapLayerManager {
             console.warn("MapLayerManager.worker unavailable.");
 
             this.mapLayerManagerWorkerAvailable = false;
+            this.mapLayerManagerWorker.terminate();
+            const pendingDraw = this.pendingDraw;
+            const pendingCallback = this.pendingCallback;
+            this.pendingDraw = undefined;
+            this.pendingCallback = undefined;
+            if (pendingDraw && pendingCallback) {
+                void this.draw(pendingDraw.data, pendingDraw.paletteMode).then(pendingCallback, pendingCallback);
+            }
         });
 
         this.mapLayerManagerWorker.onmessage = (evt) => {
@@ -60,12 +63,14 @@ export class MapLayerManager {
                     idMapping: evt.data.segmentLookupIdMapping
                 };
 
+                this.ctx.clearRect(0, 0, this.width, this.height);
                 this.ctx.putImageData(imageData, evt.data.left, evt.data.top);
 
                 if (typeof this.pendingCallback === "function") {
                     this.pendingCallback();
                     this.pendingCallback = undefined;
                 }
+                this.pendingDraw = undefined;
             } else {
                 if (evt.data.ready === true) {
                     // eslint-disable-next-line no-console
@@ -104,10 +109,9 @@ export class MapLayerManager {
                 this.canvas.width = this.width;
                 this.canvas.height = this.height;
             }
-            this.ctx.clearRect(0, 0, this.width, this.height);
-
             if (data.layers.length > 0) {
                 if (this.mapLayerManagerWorkerAvailable) {
+                    this.pendingDraw = {data: data, paletteMode: paletteMode};
                     this.mapLayerManagerWorker.postMessage( {
                         mapLayers: data.metaData.nonce !== this.mapLayerManagerWorkerLastNonce ? data.layers : undefined,
                         pixelSize: data.pixelSize,
@@ -144,6 +148,7 @@ export class MapLayerManager {
                     };
 
 
+                    this.ctx.clearRect(0, 0, this.width, this.height);
                     this.ctx.putImageData(
                         new ImageData(
                             new Uint8ClampedArray(rendered.pixelData),
@@ -157,6 +162,7 @@ export class MapLayerManager {
                     resolve();
                 }
             } else {
+                this.ctx.clearRect(0, 0, this.width, this.height);
                 resolve();
             }
         });
@@ -168,21 +174,7 @@ export class MapLayerManager {
      * @param {number} y - in cm coordinates
      */
     getIntersectingSegment(x: number, y: number): string|null {
-        if (
-            x < this.segmentLookupInfo.left ||
-            y < this.segmentLookupInfo.top ||
-            x > (this.segmentLookupInfo.left + this.segmentLookupInfo.width) ||
-            y > (this.segmentLookupInfo.top + this.segmentLookupInfo.height)
-        ) {
-            return null;
-        }
-
-        const offset = Math.round(
-            (Math.round(x) - this.segmentLookupInfo.left) +
-            ((Math.round(y) - this.segmentLookupInfo.top) * this.segmentLookupInfo.width)
-        );
-
-        return this.segmentLookupInfo.idMapping[this.segmentLookupInfo.data[offset]] ?? null;
+        return getSegmentAtPoint(this.segmentLookupInfo, x, y);
     }
 
     setSelectedSegmentIds(selectedSegmentIds: string[]) {
@@ -199,5 +191,6 @@ export class MapLayerManager {
         this.mapLayerManagerWorker.terminate();
         this.pendingCallback?.();
         this.pendingCallback = undefined;
+        this.pendingDraw = undefined;
     }
 }
