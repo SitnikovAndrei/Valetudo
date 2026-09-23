@@ -1,6 +1,7 @@
 import {RawMapEntity, RawMapEntityType} from "../api";
-import {PaletteMode} from "@mui/material";
 import {simplify} from "./utils/simplify_js";
+
+type PaletteMode = "light" | "dark";
 
 type PathDrawerOptions = {
     pathMapEntities: Array<RawMapEntity>,

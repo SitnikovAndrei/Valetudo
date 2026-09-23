@@ -18,3 +18,4 @@ build/
 /backend/lib/robots/midea/generated/midea_protobufs.js
 
 /docs/dist
+/frontend-vue/build/

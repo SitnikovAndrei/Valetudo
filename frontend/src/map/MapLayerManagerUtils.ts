@@ -1,8 +1,9 @@
 // noinspection ES6PreferShortImport - Import cannot be shortened without ending up with a cyclic dependency in the build
 import {RawMapLayer, RawMapLayerMaterial} from "../api/RawMapData";
 import {FourColorTheoremSolver} from "./utils/colors/FourColorTheoremSolver";
-import {PaletteMode} from "@mui/material";
 import {darkPalette, lightPalette} from "../colors";
+
+type PaletteMode = "light" | "dark";
 
 export type RGBColor = {
     r: number;

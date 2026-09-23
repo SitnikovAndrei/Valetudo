@@ -1,12 +1,15 @@
 # Valetudo Frontend
 
-This is the new Valetudo Frontend written in React
+This is the Valetudo frontend written in React.
 
 ## Getting started
 
-As it's much easier to work with a real Valetudo instead of a mock server, this project uses `cra-build-watch` to allow
-us to do just that. See also: https://github.com/facebook/create-react-app/issues/1070
+Install dependencies with `npm ci` at the repository root, then start a local Valetudo backend
+(for example, using the MockValetudoRobot implementation).
 
-To work on this, it is recommended to spin up a local Valetudo instance (e.g. by using the MockValetudoRobot implementation)
-and then running `npm run watch` in this folder.
-That will start webpack watch. When it's done doing the initial build, you can reach the frontend in your browser.
+- `npm run dev --workspace=frontend` starts the Vite server on `127.0.0.1:5173` and proxies API requests to the backend on port 80. Set `VALETUDO_DEV_BACKEND` (for example, `http://127.0.0.1:8080`) to use another backend address.
+- `npm run watch --workspace=frontend` rebuilds `frontend/build` after changes, for use through the backend's web server.
+- `npm run build --workspace=frontend` creates the production files in `frontend/build`.
+- `npm run build_stats --workspace=frontend` creates `frontend/build/bundle-stats.html`; `npm run analyze_stats --workspace=frontend` opens it through Vite preview.
+
+The production build uses relative asset paths so it can be served directly by Valetudo or from a subpath behind a reverse proxy.

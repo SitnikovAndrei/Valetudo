@@ -1,0 +1,54 @@
+@layer theme, base, primevue, components, utilities;
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/700.css";
+
+:root {
+    font-family: "IBM Plex Sans", sans-serif;
+    color-scheme: light;
+    --app-bg: #e9ede8;
+    --app-surface: #ffffff;
+    --app-text: #19352c;
+    --app-muted: #62766b;
+    --app-accent: #246e53;
+    --app-border: #d4dfd6;
+}
+
+:root.dark {
+    color-scheme: dark;
+    --app-bg: #101c19;
+    --app-surface: #1d2d26;
+    --app-text: #edf5ed;
+    --app-muted: #b6c8b9;
+    --app-accent: #86cba2;
+    --app-border: #365044;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    background: var(--app-bg);
+    color: var(--app-text);
+}
+
+#app { min-height: 100dvh; }
+
+.panel {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+}
+
+.muted { color: var(--app-muted); }
+
+a { color: var(--app-accent); }
+.nav-link:hover, .nav-link[aria-current="page"] { background: var(--app-border); }
+.nav-card { display: block; padding: 1rem; border: 1px solid var(--app-border); border-radius: .75rem; text-decoration: none; }
+.nav-card:hover { background: var(--app-bg); }
+.markdown-content p { margin: 0 0 1rem; line-height: 1.6; }
+.markdown-content h3 { margin: 1.5rem 0 .75rem; font-size: 1.2rem; font-weight: 700; }
+.markdown-content blockquote { margin: 1rem 0; padding-left: 1rem; border-left: 3px solid var(--app-border); }
+
+:focus-visible { outline: 3px solid var(--app-accent); outline-offset: 3px; }

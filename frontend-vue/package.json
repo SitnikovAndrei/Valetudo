@@ -1,0 +1,32 @@
+{
+  "name": "valetudo-frontend-vue",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vue-tsc --noEmit && vite build",
+    "watch": "vite build --watch",
+    "lint": "eslint -c .eslintrc.cjs --ext .ts,.vue src",
+    "test": "vitest run",
+    "ts-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@primeuix/themes": "2.0.1",
+    "@tanstack/vue-query": "5.103.2",
+    "@types/markdown-it": "^14.2.0",
+    "markdown-it": "^14.1.1",
+    "primevue": "4.4.1",
+    "vue": "3.5.43",
+    "vue-router": "4.6.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@vitejs/plugin-vue": "6.0.9",
+    "eslint-plugin-vue": "9.33.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1",
+    "vue-eslint-parser": "9.4.3",
+    "vue-tsc": "3.3.11"
+  }
+}

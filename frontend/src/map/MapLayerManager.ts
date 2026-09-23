@@ -1,6 +1,7 @@
 import {RawMapData} from "../api";
-import {PaletteMode} from "@mui/material";
 import {PROCESS_LAYERS} from "./MapLayerManagerUtils";
+
+type PaletteMode = "light" | "dark";
 
 export class MapLayerManager {
     private readonly canvas: HTMLCanvasElement;
@@ -33,7 +34,7 @@ export class MapLayerManager {
 
         this.ctx = this.canvas.getContext("2d")!;
 
-        this.mapLayerManagerWorker = new Worker(new URL("./MapLayerManager.worker", import.meta.url));
+        this.mapLayerManagerWorker = new Worker(new URL("./MapLayerManager.worker.ts", import.meta.url), {type: "module"});
 
         this.mapLayerManagerWorker.onerror = (ev => {
             // eslint-disable-next-line no-console
@@ -190,5 +191,13 @@ export class MapLayerManager {
 
     getCanvas(): HTMLCanvasElement {
         return this.canvas;
+    }
+
+    dispose(): void {
+        this.mapLayerManagerWorker.onmessage = null;
+        this.mapLayerManagerWorker.onerror = null;
+        this.mapLayerManagerWorker.terminate();
+        this.pendingCallback?.();
+        this.pendingCallback = undefined;
     }
 }
