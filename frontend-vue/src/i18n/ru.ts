@@ -653,7 +653,6 @@ export const ru: Record<string, string> = {
     "zone_cleanup": "уборка зон",
     "zones": "зоны",
     "Zones": "Зоны",
-    "{count} robot capabilities detected": "Обнаружено возможностей робота: {count}",
     "2h": "2 часа",
     "3h": "3 часа",
     "4h": "4 часа",

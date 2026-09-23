@@ -4,7 +4,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import Message from "primevue/message";
-import {Capability, type ValetudoInformation} from "../../../frontend/src/api/types";
+import {Capability} from "../../../frontend/src/api/types";
 import {fetchRobotInformation, fetchStateAttributes, sendBasicControlCommand, type BasicControlCommand} from "../../../frontend/src/api/client";
 import {useRobotAttributes} from "../composables/useRobotAttributes";
 import {isBasicCommandEnabled} from "../basicControl";
@@ -12,7 +12,7 @@ import LiveMapPanel from "../components/LiveMapPanel.vue";
 import HomeDetails from "../components/HomeDetails.vue";
 import {valueLabel} from "../i18n/labels";
 
-const props = defineProps<{capabilities: Capability[]; information: ValetudoInformation; paletteMode: "light" | "dark"}>();
+const props = defineProps<{capabilities: Capability[]; paletteMode: "light" | "dark"}>();
 const robot = useQuery({queryKey: ["robotInformation"], queryFn: fetchRobotInformation, retry: 1});
 const {query: attributes, status, batteries, queryKey} = useRobotAttributes();
 const queryClient = useQueryClient();
@@ -46,7 +46,7 @@ function startConfirmed() {
 
 <template>
     <section class="grid gap-5 pb-20 md:grid-cols-2 md:pb-0">
-        <div class="panel">
+        <div class="panel md:col-span-2">
             <p class="muted mb-2 text-sm uppercase tracking-wider">{{ $t("Robot") }}</p>
             <p v-if="robot.isPending.value" role="status">{{ $t("Loading robot information…") }}</p>
             <p v-else-if="robot.isError.value" role="alert">{{ $t("Robot information is unavailable.") }}</p>
@@ -54,11 +54,6 @@ function startConfirmed() {
                 <h1 class="text-3xl font-bold">{{ robot.data.value?.modelName }}</h1>
                 <p class="muted mt-2">{{ robot.data.value?.manufacturer }}</p>
             </template>
-        </div>
-        <div class="panel">
-            <p class="muted mb-2 text-sm uppercase tracking-wider">{{ $t("Valetudo") }}</p>
-            <h2 class="text-2xl font-semibold">{{ information.systemId }}</h2>
-            <p class="muted mt-3">{{ $t("{count} robot capabilities detected", {count: capabilities.length}) }}</p>
         </div>
         <LiveMapPanel class="md:col-span-2" :capabilities="capabilities" :palette-mode="paletteMode"
             :status="status" @pending-change="value => pendingMapAction = value" />
