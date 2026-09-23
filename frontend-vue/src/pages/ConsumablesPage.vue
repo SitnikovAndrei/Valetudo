@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {valueLabel} from "../i18n/labels";
+import {consumableName, valueLabel} from "../i18n/labels";
 import {ref} from "vue";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
@@ -22,7 +22,7 @@ const reset = useMutation({
 });
 
 function name(consumable: ConsumableMeta) {
-    return [consumable.subType !== "none" ? valueLabel(consumable.subType) : "", valueLabel(consumable.type)].filter(Boolean).join(" ");
+    return consumableName(consumable.type, consumable.subType);
 }
 
 function remaining(consumable: ConsumableMeta) {
@@ -47,8 +47,8 @@ function percentage(consumable: ConsumableMeta) {
         <div v-for="consumable in properties.data.value?.availableConsumables" :key="`${consumable.type}_${consumable.subType}`" class="border-b py-4" style="border-color: var(--app-border)">
             <div class="flex items-center justify-between gap-4">
                 <div class="min-w-0 flex-1">
-                    <h2 class="font-semibold capitalize">{{ name(consumable) }}</h2>
-                    <p v-if="remaining(consumable)" class="muted text-sm">{{ remaining(consumable)?.value }} {{ remaining(consumable)?.unit }}</p>
+                    <h2 class="font-semibold">{{ name(consumable) }}</h2>
+                    <p v-if="remaining(consumable)" class="muted text-sm">{{ remaining(consumable)?.value }} {{ valueLabel(remaining(consumable)?.unit) }}</p>
                     <ProgressBar v-if="percentage(consumable) !== undefined" :value="percentage(consumable)" :show-value="false" class="mt-2" />
                 </div>
                 <Button :label='$t("Reset")' outlined :disabled="reset.isPending.value" @click="selected = consumable" />

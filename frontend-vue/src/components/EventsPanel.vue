@@ -5,8 +5,9 @@ import Button from "primevue/button";
 import Drawer from "primevue/drawer";
 import Message from "primevue/message";
 import {fetchValetudoEvents, sendValetudoEventInteraction} from "../../../frontend/src/api/client";
-import type {ValetudoEvent, ValetudoEventInteraction} from "../../../frontend/src/api/types";
+import type {ConsumableSubType, ConsumableType, ValetudoEvent, ValetudoEventInteraction} from "../../../frontend/src/api/types";
 import {translate} from "../i18n";
+import {consumableName} from "../i18n/labels";
 
 const queryClient = useQueryClient();
 const events = useQuery({queryKey: ["valetudoEvents"], queryFn: fetchValetudoEvents, staleTime: 30000, refetchInterval: 30000});
@@ -16,7 +17,7 @@ const interaction = useMutation({mutationFn: sendValetudoEventInteraction, onSuc
 
 function content(event: ValetudoEvent) {
     switch (event.__class) {
-        case "ConsumableDepletedValetudoEvent": return translate("The {name} consumable is depleted.", {name: `${event.subType ?? ""} ${event.type ?? ""}`.trim()});
+        case "ConsumableDepletedValetudoEvent": return translate("The {name} consumable is depleted.", {name: consumableName(event.type as ConsumableType | undefined, event.subType as ConsumableSubType | undefined)});
         case "ErrorStateValetudoEvent": return translate("An error occurred: {message}", {message: event.message || translate("Unknown error")});
         case "PendingMapChangeValetudoEvent": return translate("A map change is pending. Do you want to accept the new map?");
         case "DustBinFullValetudoEvent": return translate("The dust bin is full. Please empty it.");
