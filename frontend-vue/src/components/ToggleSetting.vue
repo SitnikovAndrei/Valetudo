@@ -13,6 +13,6 @@ const mutation = useMutation({mutationFn: props.updateState, onSuccess: () => qu
 <template>
     <div class="border-b py-4" style="border-color: var(--app-border)">
         <label class="flex items-center justify-between gap-4"><span><span class="block font-semibold">{{ name }}</span><span v-if="description" class="muted text-sm">{{ description }}</span></span><Checkbox :model-value="state.data.value?.enabled ?? false" binary :disabled="state.isPending.value || state.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(Boolean($event))" /></label>
-        <Message v-if="state.isError.value || mutation.isError.value" severity="error" class="mt-2">Unable to load or update {{ name.toLowerCase() }}.</Message>
+        <Message v-if="state.isError.value || mutation.isError.value" severity="error" class="mt-2">{{ $t("Unable to load or update {name}.", {name}) }}</Message>
     </div>
 </template>

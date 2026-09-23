@@ -11,6 +11,8 @@ import Select from "primevue/select";
 import {Capability, ValetudoTimerActionType, ValetudoTimerPreActionType, type Timer} from "../../../frontend/src/api/types";
 import {deleteTimer, fetchMapSegmentationProperties, fetchPresetSelections, fetchSegments, fetchTimerInformation, fetchTimerProperties, sendTimerAction, sendTimerCreation, sendTimerUpdate} from "../../../frontend/src/api/client";
 import {shiftTimer} from "../timerTime";
+import {translate} from "../i18n";
+import {valueLabel} from "../i18n/labels";
 
 const queryClient = useQueryClient();
 const timers = useQuery({queryKey: ["timers"], queryFn: fetchTimerInformation});
@@ -27,7 +29,7 @@ const presets = useQuery({
     queryFn: async () => Object.fromEntries(await Promise.all((properties.data.value?.supportedPreActions ?? []).map(async type => [type, (await fetchPresetSelections(presetCapabilities[type])).filter(value => value !== "custom")]))),
     enabled: computed(() => (properties.data.value?.supportedPreActions.length ?? 0) > 0)
 });
-const weekdays = [{label: "Mon", value: 1}, {label: "Tue", value: 2}, {label: "Wed", value: 3}, {label: "Thu", value: 4}, {label: "Fri", value: 5}, {label: "Sat", value: 6}, {label: "Sun", value: 0}];
+const weekdays = computed(() => [{label: translate("Mon"), value: 1}, {label: translate("Tue"), value: 2}, {label: translate("Wed"), value: 3}, {label: translate("Thu"), value: 4}, {label: translate("Fri"), value: 5}, {label: translate("Sat"), value: 6}, {label: translate("Sun"), value: 0}]);
 const draft = ref<Timer>();
 const deleteId = ref<string>();
 const executeId = ref<string>();
@@ -91,31 +93,31 @@ function changeAction(type: ValetudoTimerActionType) {
 
 <template>
     <section class="panel">
-        <div class="mb-5 flex items-center justify-between"><h1 class="text-2xl font-bold">Timers</h1><Button label="Add timer" :disabled="properties.isPending.value" @click="newTimer" /></div>
-        <p v-if="timers.isPending.value || properties.isPending.value" role="status">Loading timers…</p>
-        <Message v-else-if="timers.isError.value || properties.isError.value || mutation.isError.value" severity="error">Timer request failed.</Message>
-        <p v-else-if="!Object.keys(timers.data.value ?? {}).length" class="muted">You have no timers configured.</p>
+        <div class="mb-5 flex items-center justify-between"><h1 class="text-2xl font-bold">{{ $t("Timers") }}</h1><Button :label='$t("Add timer")' :disabled="properties.isPending.value" @click="newTimer" /></div>
+        <p v-if="timers.isPending.value || properties.isPending.value" role="status">{{ $t("Loading timers…") }}</p>
+        <Message v-else-if="timers.isError.value || properties.isError.value || mutation.isError.value" severity="error">{{ $t("Timer request failed.") }}</Message>
+        <p v-else-if="!Object.keys(timers.data.value ?? {}).length" class="muted">{{ $t("You have no timers configured.") }}</p>
         <div v-for="timer in timers.data.value" :key="timer.id" class="mb-3 rounded-lg border p-4" style="border-color: var(--app-border)">
-            <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-semibold">{{ timer.label || 'Timer' }} · {{ timer.enabled ? 'Enabled' : 'Disabled' }}</h2><p>{{ shiftTimer(timer, -new Date().getTimezoneOffset()).hour.toString().padStart(2, '0') }}:{{ shiftTimer(timer, -new Date().getTimezoneOffset()).minute.toString().padStart(2, '0') }} · {{ timer.action.type.replace('_', ' ') }}</p></div><div class="flex gap-2"><Button label="Edit" outlined @click="edit(timer)" /><Button label="Run now" outlined @click="executeId = timer.id" /><Button label="Delete" severity="danger" outlined @click="deleteId = timer.id" /></div></div>
+            <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-semibold">{{ timer.label || $t("Timer") }} · {{ timer.enabled ? $t("Enabled") : $t("Disabled") }}</h2><p>{{ shiftTimer(timer, -new Date().getTimezoneOffset()).hour.toString().padStart(2, '0') }}:{{ shiftTimer(timer, -new Date().getTimezoneOffset()).minute.toString().padStart(2, '0') }} · {{ valueLabel(timer.action.type) }}</p></div><div class="flex gap-2"><Button :label='$t("Edit")' outlined @click="edit(timer)" /><Button :label='$t("Run now")' outlined @click="executeId = timer.id" /><Button :label='$t("Delete")' severity="danger" outlined @click="deleteId = timer.id" /></div></div>
         </div>
-        <Dialog :visible="Boolean(draft)" modal :header="draft?.id ? 'Edit timer' : 'Add timer'" class="w-[min(95vw,42rem)]" @update:visible="draft = undefined">
+        <Dialog :visible="Boolean(draft)" modal :header="draft?.id ? $t('Edit timer') : $t('Add timer')" class="w-[min(95vw,42rem)]" @update:visible="draft = undefined">
             <div v-if="draft" class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto px-1">
-                <label class="flex items-center gap-2"><Checkbox v-model="draft.enabled" binary /> Enabled</label>
-                <label class="flex flex-col gap-1">Custom label <InputText v-model="draft.label" maxlength="24" /></label>
-                <fieldset><legend class="mb-2 font-semibold">Days</legend><div class="flex flex-wrap gap-3"><label v-for="day in weekdays" :key="day.value" class="flex items-center gap-1"><Checkbox :model-value="draft.dow.includes(day.value)" binary @update:model-value="toggleDay(day.value)" /> {{ day.label }}</label></div></fieldset>
-                <label class="flex flex-col gap-1">Time ({{ Intl.DateTimeFormat().resolvedOptions().timeZone }}) <input v-model="localTime" type="time" required class="rounded-lg border p-2" style="border-color: var(--app-border); background: var(--app-surface)" /></label>
-                <label class="flex flex-col gap-1">Action <Select :model-value="draft.action.type" :options="properties.data.value?.supportedActions ?? []" @update:model-value="changeAction" /></label>
+                <label class="flex items-center gap-2"><Checkbox v-model="draft.enabled" binary /> {{ $t("Enabled") }}</label>
+                <label class="flex flex-col gap-1">{{ $t("Custom label") }} <InputText v-model="draft.label" maxlength="24" /></label>
+                <fieldset><legend class="mb-2 font-semibold">{{ $t("Days") }}</legend><div class="flex flex-wrap gap-3"><label v-for="day in weekdays" :key="day.value" class="flex items-center gap-1"><Checkbox :model-value="draft.dow.includes(day.value)" binary @update:model-value="toggleDay(day.value)" /> {{ day.label }}</label></div></fieldset>
+                <label class="flex flex-col gap-1">{{ $t("Time") }} ({{ Intl.DateTimeFormat().resolvedOptions().timeZone }}) <input v-model="localTime" type="time" required class="rounded-lg border p-2" style="border-color: var(--app-border); background: var(--app-surface)" /></label>
+                <label class="flex flex-col gap-1">{{ $t("Action") }} <Select :model-value="draft.action.type" :options="(properties.data.value?.supportedActions ?? []).map((value: string) => ({label: valueLabel(value), value}))" option-label="label" option-value="value" @update:model-value="changeAction" /></label>
                 <template v-if="draft.action.type === ValetudoTimerActionType.SEGMENT_CLEANUP">
-                    <Message v-if="segments.isError.value || segmentation.isError.value" severity="error">Unable to load segments.</Message>
-                    <fieldset><legend class="mb-2 font-semibold">Segments</legend><div class="grid gap-2 sm:grid-cols-2"><label v-for="segment in segments.data.value" :key="segment.id" class="flex items-center gap-2"><Checkbox :model-value="selectedSegments.includes(segment.id)" binary @update:model-value="selectedSegments = selectedSegments.includes(segment.id) ? selectedSegments.filter(id => id !== segment.id) : [...selectedSegments, segment.id]" /> {{ segment.name || segment.id }}</label></div></fieldset>
-                    <label class="flex flex-col gap-1">Iterations <InputNumber v-model="iterations" :min="segmentation.data.value?.iterationCount.min ?? 1" :max="segmentation.data.value?.iterationCount.max ?? 1" :use-grouping="false" /></label>
-                    <label v-if="segmentation.data.value?.customOrderSupport" class="flex items-center gap-2"><Checkbox v-model="customOrder" binary /> Use custom order</label>
+                    <Message v-if="segments.isError.value || segmentation.isError.value" severity="error">{{ $t("Unable to load segments.") }}</Message>
+                    <fieldset><legend class="mb-2 font-semibold">{{ $t("Segments") }}</legend><div class="grid gap-2 sm:grid-cols-2"><label v-for="segment in segments.data.value" :key="segment.id" class="flex items-center gap-2"><Checkbox :model-value="selectedSegments.includes(segment.id)" binary @update:model-value="selectedSegments = selectedSegments.includes(segment.id) ? selectedSegments.filter(id => id !== segment.id) : [...selectedSegments, segment.id]" /> {{ segment.name || segment.id }}</label></div></fieldset>
+                    <label class="flex flex-col gap-1">{{ $t("Iterations") }} <InputNumber v-model="iterations" :min="segmentation.data.value?.iterationCount.min ?? 1" :max="segmentation.data.value?.iterationCount.max ?? 1" :use-grouping="false" /></label>
+                    <label v-if="segmentation.data.value?.customOrderSupport" class="flex items-center gap-2"><Checkbox v-model="customOrder" binary /> {{ $t("Use custom order") }}</label>
                 </template>
-                <fieldset v-if="properties.data.value?.supportedPreActions.length"><legend class="mb-2 font-semibold">Pre-actions</legend><div class="flex flex-col gap-3"><label v-for="type in properties.data.value.supportedPreActions" :key="type" class="flex flex-col gap-1">{{ type.replace(/_/g, ' ') }} <Select :model-value="draft.pre_actions?.find(item => item.type === type)?.params.value" :options="presets.data.value?.[type] ?? []" show-clear :disabled="presets.isPending.value" @update:model-value="value => setPreAction(type, value)" /></label></div></fieldset>
+                <fieldset v-if="properties.data.value?.supportedPreActions.length"><legend class="mb-2 font-semibold">{{ $t("Pre-actions") }}</legend><div class="flex flex-col gap-3"><label v-for="type in properties.data.value.supportedPreActions" :key="type" class="flex flex-col gap-1">{{ valueLabel(type) }} <Select :model-value="draft.pre_actions?.find(item => item.type === type)?.params.value" :options="(presets.data.value?.[type] ?? []).map((value: string) => ({label: valueLabel(value), value}))" option-label="label" option-value="value" show-clear :disabled="presets.isPending.value" @update:model-value="value => setPreAction(type, value)" /></label></div></fieldset>
             </div>
-            <div class="mt-5 flex justify-end gap-2"><Button label="Cancel" text @click="draft = undefined" /><Button label="Save" :loading="mutation.isPending.value" :disabled="!valid" @click="save" /></div>
+            <div class="mt-5 flex justify-end gap-2"><Button :label='$t("Cancel")' text @click="draft = undefined" /><Button :label='$t("Save")' :loading="mutation.isPending.value" :disabled="!valid" @click="save" /></div>
         </Dialog>
-        <Dialog :visible="Boolean(deleteId)" modal header="Delete timer?" @update:visible="deleteId = undefined"><p>Delete this timer permanently?</p><div class="mt-4 flex justify-end gap-2"><Button label="Cancel" text @click="deleteId = undefined" /><Button label="Delete" severity="danger" :loading="mutation.isPending.value" @click="deleteId && mutation.mutate({kind: 'delete', id: deleteId})" /></div></Dialog>
-        <Dialog :visible="Boolean(executeId)" modal header="Run timer now?" @update:visible="executeId = undefined"><p>Execute this timer action now?</p><div class="mt-4 flex justify-end gap-2"><Button label="Cancel" text @click="executeId = undefined" /><Button label="Run now" :loading="mutation.isPending.value" @click="executeId && mutation.mutate({kind: 'execute', id: executeId})" /></div></Dialog>
+        <Dialog :visible="Boolean(deleteId)" modal :header='$t("Delete timer?")' @update:visible="deleteId = undefined"><p>{{ $t("Delete this timer permanently?") }}</p><div class="mt-4 flex justify-end gap-2"><Button :label='$t("Cancel")' text @click="deleteId = undefined" /><Button :label='$t("Delete")' severity="danger" :loading="mutation.isPending.value" @click="deleteId && mutation.mutate({kind: 'delete', id: deleteId})" /></div></Dialog>
+        <Dialog :visible="Boolean(executeId)" modal :header='$t("Run timer now?")' @update:visible="executeId = undefined"><p>{{ $t("Execute this timer action now?") }}</p><div class="mt-4 flex justify-end gap-2"><Button :label='$t("Cancel")' text @click="executeId = undefined" /><Button :label='$t("Run now")' :loading="mutation.isPending.value" @click="executeId && mutation.mutate({kind: 'execute', id: executeId})" /></div></Dialog>
     </section>
 </template>

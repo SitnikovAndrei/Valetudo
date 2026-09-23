@@ -33,7 +33,7 @@ onBeforeUnmount(() => {if (timer) clearTimeout(timer); void context?.close();});
 </script>
 
 <template>
-    <button type="button" class="inline-block h-[2em] w-[3.65em] cursor-pointer align-middle transition-transform" :style="{transform: `${facing === 'left' ? 'scaleX(-1)' : ''} ${active ? 'scale(1.02) rotate(-1deg)' : ''}`}" aria-label="Woodcock, play peent" @click="peent">
+    <button type="button" class="inline-block h-[2em] w-[3.65em] cursor-pointer align-middle transition-transform" :style="{transform: `${facing === 'left' ? 'scaleX(-1)' : ''} ${active ? 'scale(1.02) rotate(-1deg)' : ''}`}" :aria-label='$t("Woodcock, play peent")' @click="peent">
         <svg viewBox="0 0 135.09 74.134" class="h-full w-full overflow-visible" aria-hidden="true">
             <path d="m73.586 33.634 55 20q6 2 6 8t-6 4l-55-7q-15 15-35 15c-30 0-45-30-35-60 10-20 45-20 70 20z" fill="#fff" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="14" />
             <path d="m73.586 33.634 55 20q6 2 6 8t-6 4l-55-7q-15 15-35 15c-30 0-45-30-35-60 10-20 45-20 70 20z" fill="#c19a6b" />

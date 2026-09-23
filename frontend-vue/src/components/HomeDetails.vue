@@ -7,15 +7,17 @@ import Select from "primevue/select";
 import {Capability} from "../../../frontend/src/api/types";
 import {RobotAttributeClass, type PresetSelectionState, type RobotAttribute} from "../../../frontend/src/api/RawRobotState";
 import {fetchCurrentStatistics, fetchPresetSelections, sendAutoEmptyDockManualTriggerCommand, sendMopDockCleanManualTriggerCommand, sendMopDockDryManualTriggerCommand, updatePresetSelection} from "../../../frontend/src/api/client";
+import {translate} from "../i18n";
+import {valueLabel} from "../i18n/labels";
 
 const props = defineProps<{capabilities: Capability[]; attributes: RobotAttribute[]}>();
 const queryClient = useQueryClient();
-const presetControls = [
-    {capability: Capability.FanSpeedControl, type: "fan_speed", label: "Fan speed"},
-    {capability: Capability.WaterUsageControl, type: "water_grade", label: "Water usage"},
-    {capability: Capability.OperationModeControl, type: "operation_mode", label: "Operation mode"}
-] as const;
-const visiblePresets = computed(() => presetControls.filter(control => props.capabilities.includes(control.capability)));
+const presetControls = computed(() => [
+    {capability: Capability.FanSpeedControl, type: "fan_speed", label: translate("Fan speed")},
+    {capability: Capability.WaterUsageControl, type: "water_grade", label: translate("Water usage")},
+    {capability: Capability.OperationModeControl, type: "operation_mode", label: translate("Operation mode")}
+] as const);
+const visiblePresets = computed(() => presetControls.value.filter(control => props.capabilities.includes(control.capability)));
 const robotState = computed(() => props.attributes.find(attribute => attribute.__class === RobotAttributeClass.StatusState)?.value);
 const dockState = computed(() => props.attributes.find(attribute => attribute.__class === RobotAttributeClass.DockStatusState)?.value ?? "idle");
 const mopAttached = computed(() => props.attributes.some(attribute => attribute.__class === RobotAttributeClass.AttachmentState && attribute.type === "mop" && attribute.attached));
@@ -52,14 +54,14 @@ function statValue(type: string, value: number) {
 
 <template>
     <section v-if="visiblePresets.length || capabilities.includes(Capability.CurrentStatistics) || capabilities.some(capability => [Capability.AutoEmptyDockManualTrigger, Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability))" class="panel md:col-span-2">
-        <h2 class="mb-4 text-xl font-semibold">Robot controls</h2>
-        <div v-for="control in visiblePresets" :key="control.type" class="mb-4 flex flex-wrap items-center justify-between gap-3"><label :for="control.type">{{ control.label }}</label><Select :id="control.type" :model-value="selected(control.type)" :options="options.data.value?.[control.type] ?? []" :disabled="options.isPending.value || presetMutation.isPending.value" @update:model-value="value => presetMutation.mutate({capability: control.capability, value})" /></div>
+        <h2 class="mb-4 text-xl font-semibold">{{ $t("Robot controls") }}</h2>
+        <div v-for="control in visiblePresets" :key="control.type" class="mb-4 flex flex-wrap items-center justify-between gap-3"><label :for="control.type">{{ control.label }}</label><Select :id="control.type" :model-value="selected(control.type)" :options="(options.data.value?.[control.type] ?? []).map((value: string) => ({label: valueLabel(value), value}))" option-label="label" option-value="value" :disabled="options.isPending.value || presetMutation.isPending.value" @update:model-value="value => presetMutation.mutate({capability: control.capability, value})" /></div>
         <div class="flex flex-wrap gap-2">
-            <Button v-if="capabilities.includes(Capability.AutoEmptyDockManualTrigger)" label="Empty dustbin" outlined :disabled="dockMutation.isPending.value || !canEmpty" @click="dockMutation.mutate('empty')" />
-            <Button v-if="capabilities.includes(Capability.MopDockCleanManualTrigger)" :label="dockState === 'cleaning' ? 'Stop mop cleaning' : 'Clean mop'" outlined :disabled="dockMutation.isPending.value || !canClean" @click="dockMutation.mutate(dockState === 'cleaning' ? 'stop_clean' : 'clean')" />
-            <Button v-if="capabilities.includes(Capability.MopDockDryManualTrigger)" :label="dockState === 'drying' ? 'Stop mop drying' : 'Dry mop'" outlined :disabled="dockMutation.isPending.value || !canDry" @click="dockMutation.mutate(dockState === 'drying' ? 'stop_dry' : 'dry')" />
+            <Button v-if="capabilities.includes(Capability.AutoEmptyDockManualTrigger)" :label='$t("Empty dustbin")' outlined :disabled="dockMutation.isPending.value || !canEmpty" @click="dockMutation.mutate('empty')" />
+            <Button v-if="capabilities.includes(Capability.MopDockCleanManualTrigger)" :label="dockState === 'cleaning' ? $t('Stop mop cleaning') : $t('Clean mop')" outlined :disabled="dockMutation.isPending.value || !canClean" @click="dockMutation.mutate(dockState === 'cleaning' ? 'stop_clean' : 'clean')" />
+            <Button v-if="capabilities.includes(Capability.MopDockDryManualTrigger)" :label="dockState === 'drying' ? $t('Stop mop drying') : $t('Dry mop')" outlined :disabled="dockMutation.isPending.value || !canDry" @click="dockMutation.mutate(dockState === 'drying' ? 'stop_dry' : 'dry')" />
         </div>
-        <div v-if="capabilities.includes(Capability.CurrentStatistics)" class="mt-5"><h3 class="mb-2 font-semibold">Current statistics</h3><p v-if="currentStats.isPending.value" role="status">Loading…</p><div v-else class="flex flex-wrap gap-5"><p v-for="stat in currentStats.data.value" :key="stat.type">{{ stat.type }}: {{ statValue(stat.type, stat.value) }}</p></div></div>
-        <Message v-if="options.isError.value || presetMutation.isError.value || dockMutation.isError.value || currentStats.isError.value" severity="error" class="mt-4">A robot control request failed.</Message>
+        <div v-if="capabilities.includes(Capability.CurrentStatistics)" class="mt-5"><h3 class="mb-2 font-semibold">{{ $t("Current statistics") }}</h3><p v-if="currentStats.isPending.value" role="status">{{ $t("Loading…") }}</p><div v-else class="flex flex-wrap gap-5"><p v-for="stat in currentStats.data.value" :key="stat.type">{{ valueLabel(stat.type) }}: {{ statValue(stat.type, stat.value) }}</p></div></div>
+        <Message v-if="options.isError.value || presetMutation.isError.value || dockMutation.isError.value || currentStats.isError.value" severity="error" class="mt-4">{{ $t("A robot control request failed.") }}</Message>
     </section>
 </template>

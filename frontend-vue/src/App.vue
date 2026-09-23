@@ -10,10 +10,15 @@ import AppNavigation from "./components/AppNavigation.vue";
 import EventsPanel from "./components/EventsPanel.vue";
 import WelcomeDialog from "./components/WelcomeDialog.vue";
 import Select from "primevue/select";
+import {usePrimeVue} from "@primevue/core/config";
+import {i18n, setLanguage, translate, type Language} from "./i18n";
+import {primeLocale} from "./i18n/prime";
 
 type PaletteMode = "light" | "dark";
 
 const router = useRouter();
+const prime = usePrimeVue();
+const language = i18n.global.locale;
 const media = window.matchMedia("(prefers-color-scheme: dark)");
 const saved = localStorage.getItem("palette-mode");
 const paletteMode = ref<PaletteMode>(saved === "light" || saved === "dark" ? saved : (media.matches ? "dark" : "light"));
@@ -52,9 +57,20 @@ watch([() => router.currentRoute.value.path, capabilities.data, duststream.data]
     if (["/robot/camera", "/options/map_management/spectator"].includes(path) && (!available.includes(Capability.Duststreaming) || camera?.enabled === false)) void router.replace("/");
 }, {immediate: true});
 
-watch(() => router.currentRoute.value.path, path => {
-    const title = path === "/" ? "" : path.split("/").filter(Boolean).slice(-2).map(part => part.replace(/_/g, " ").replace(/\b\w/g, letter => letter.toUpperCase())).join(" - ");
-    document.title = title ? `Valetudo - ${title}` : "Valetudo";
+watch([() => router.currentRoute.value.path, language], ([path, value]) => {
+    document.documentElement.lang = value;
+    Object.assign(prime.config.locale!, primeLocale(value));
+    const titles: Record<string, string> = {
+        "/robot/consumables": translate("Consumables"), "/robot/manual_control": translate("Manual control"), "/robot/total_statistics": translate("Total statistics"), "/robot/camera": translate("Camera"),
+        "/options/connectivity": translate("Connectivity"), "/options/connectivity/auth": translate("HTTP Basic Auth"), "/options/connectivity/networkadvertisement": translate("Network advertisement"),
+        "/options/connectivity/ntp": translate("NTP"), "/options/connectivity/wifi": translate("Wi-Fi connectivity"), "/options/connectivity/mqtt": translate("MQTT connectivity"),
+        "/options/map_management": translate("Map options"), "/options/map_management/segments": translate("Segment management"), "/options/map_management/virtual_restrictions": translate("Virtual restrictions"),
+        "/options/map_management/annotations": translate("Map annotations"), "/options/map_management/spectator": translate("Spectator map"), "/options/map_management/robot_coverage": translate("Robot coverage map"),
+        "/options/robot": translate("Robot options"), "/options/robot/system": translate("Robot system options"), "/options/robot/quirks": translate("Quirks"),
+        "/options/valetudo": translate("Valetudo options"), "/options/valetudo/analytics": translate("Analytics"), "/valetudo/timers": translate("Timers"),
+        "/valetudo/log": translate("Log"), "/valetudo/system_information": translate("System information"), "/setup": translate("Wi-Fi connectivity")
+    };
+    document.title = path === "/" ? "Valetudo" : `Valetudo - ${titles[path] ?? "Valetudo"}`;
 }, {immediate: true});
 
 watch(paletteMode, value => {
@@ -88,19 +104,20 @@ function retry() {
 <template>
     <div class="mx-auto flex min-h-dvh max-w-7xl flex-col px-4 pb-8 pt-4 md:px-8">
         <header class="mb-6 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2"><AppNavigation variant="mobile" :capabilities="capabilities.data.value ?? []" /><RouterLink class="text-2xl font-bold no-underline" to="/">Valetudo</RouterLink></div>
+            <div class="flex items-center gap-2"><AppNavigation variant="mobile" :capabilities="capabilities.data.value ?? []" /><RouterLink class="text-2xl font-bold no-underline" to="/">{{ $t("Valetudo") }}</RouterLink></div>
             <div class="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
                 <EventsPanel v-if="!loading && !failed" />
-                <label class="sr-only" for="theme-choice">Theme</label><Select id="theme-choice" :model-value="themeChoice" :options="[{label: 'System', value: 'system'}, {label: 'Light', value: 'light'}, {label: 'Dark', value: 'dark'}]" option-label="label" option-value="value" aria-label="Theme" @update:model-value="setTheme" />
+                <label class="sr-only" for="language-choice">{{ $t("Language") }}</label><Select id="language-choice" :model-value="language" :options="[{label: 'Русский', value: 'ru'}, {label: 'English', value: 'en'}]" option-label="label" option-value="value" :aria-label='$t("Language")' @update:model-value="setLanguage($event as Language)" />
+                <label class="sr-only" for="theme-choice">{{ $t("Theme") }}</label><Select id="theme-choice" :model-value="themeChoice" :options="[{label: $t('System'), value: 'system'}, {label: $t('Light'), value: 'light'}, {label: $t('Dark'), value: 'dark'}]" option-label="label" option-value="value" :aria-label='$t("Theme")' @update:model-value="setTheme" />
             </div>
         </header>
         <div class="flex flex-1 gap-6">
             <AppNavigation v-if="!loading && !failed" variant="desktop" :capabilities="capabilities.data.value ?? []" />
         <main class="min-w-0 flex-1">
-            <div v-if="loading" class="panel" role="status">Loading robot capabilities and Valetudo information…</div>
+            <div v-if="loading" class="panel" role="status">{{ $t("Loading robot capabilities and Valetudo information…") }}</div>
             <div v-else-if="failed" class="panel flex flex-col items-start gap-4">
-                <Message severity="error">Unable to connect to Valetudo.</Message>
-                <Button label="Retry" @click="retry" />
+                <Message severity="error">{{ $t("Unable to connect to Valetudo.") }}</Message>
+                <Button :label='$t("Retry")' @click="retry" />
             </div>
             <RouterView v-else :capabilities="capabilities.data.value ?? []" :information="information.data.value" :palette-mode="paletteMode" />
         </main>

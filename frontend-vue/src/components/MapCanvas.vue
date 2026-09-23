@@ -4,6 +4,7 @@ import type {RawMapData, RawMapEntity} from "../../../frontend/src/api/RawMapDat
 import {RawMapEntityType, RawMapLayerType} from "../../../frontend/src/api/RawMapData";
 import {MapLayerManager} from "../../../frontend/src/map/MapLayerManager";
 import {activated, aprilFools} from "../aprilFools";
+import {i18n, translate} from "../i18n";
 
 type Point = {x: number; y: number};
 type MapZone = {a: Point; b: Point};
@@ -240,9 +241,9 @@ function draw() {
         ctx.textAlign = "right";
         ctx.textBaseline = "alphabetic";
         ctx.font = `${24 * dpr}px IBM Plex Sans, sans-serif`;
-        ctx.fillText("Activate Valetudo", element.width - 32 * dpr, element.height - 80 * dpr);
+        ctx.fillText(translate("Activate Valetudo"), element.width - 32 * dpr, element.height - 80 * dpr);
         ctx.font = `${14 * dpr}px IBM Plex Sans, sans-serif`;
-        ctx.fillText("Go to Settings to activate Valetudo.", element.width - 32 * dpr, element.height - 56 * dpr);
+        ctx.fillText(translate("Go to Settings to activate Valetudo."), element.width - 32 * dpr, element.height - 56 * dpr);
     }
 }
 
@@ -389,6 +390,7 @@ watch(() => [props.map.metaData.nonce, props.paletteMode, props.selectedSegmentI
 watch(() => props.map.entities, draw, {deep: true});
 watch(() => [props.zones, props.target, props.mode, props.editLine], draw);
 watch([aprilFools, activated], draw);
+watch(i18n.global.locale, draw);
 onMounted(() => {
     observer = new ResizeObserver(resize);
     observer.observe(canvas.value!);
@@ -403,7 +405,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <canvas ref="canvas" class="h-full w-full touch-none" aria-label="Robot map; arrows pan, plus and minus zoom, zero fits" tabindex="0"
+    <canvas ref="canvas" class="h-full w-full touch-none" :aria-label='$t("Robot map; arrows pan, plus and minus zoom, zero fits")' tabindex="0"
         @wheel="onWheel" @pointerdown="onPointerDown" @pointermove="onPointerMove"
         @pointerup="onPointerUp" @pointercancel="event => onPointerUp(event, true)" @keydown="onKeyDown" />
 </template>

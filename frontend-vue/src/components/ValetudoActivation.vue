@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {translate} from "../i18n";
 import {onBeforeUnmount, ref, watch} from "vue";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
@@ -128,7 +129,7 @@ function draw(now: number) {
     ctx.fillText("VALETUDO", width / 2, Math.max(75, height * 0.16));
     ctx.font = "bold 18px monospace";
     ctx.fillStyle = cracked.value ? "#00ff66" : "#ffffff";
-    ctx.fillText(cracked.value ? ">>> LICENSE PATCHED <<<" : "GENERATING LICENSE KEY...", width / 2, height - 130);
+    ctx.fillText(cracked.value ? translate(">>> LICENSE PATCHED <<<") : translate("GENERATING LICENSE KEY..."), width / 2, height - 130);
     if (!cracked.value) {
         ctx.strokeStyle = "#fff";
         ctx.strokeRect(width * 0.2, height - 110, width * 0.6, 14);
@@ -153,30 +154,30 @@ onBeforeUnmount(() => {window.clearTimeout(timer); window.clearTimeout(cloudTime
 
 <template>
     <div class="flex flex-wrap items-center justify-between gap-3 border-b pb-4" style="border-color: var(--app-border)">
-        <div><h2 class="font-semibold">Valetudo Activation</h2><p class="muted text-sm">{{ activated ? 'Activated with a digital license' : 'Valetudo is not activated' }}</p></div>
-        <Button :label="activated ? 'Details' : 'Activate'" outlined @click="open = true" />
+        <div><h2 class="font-semibold">{{ $t("Valetudo Activation") }}</h2><p class="muted text-sm">{{ activated ? $t("Activated with a digital license") : $t("Valetudo is not activated") }}</p></div>
+        <Button :label="activated ? $t('Details') : $t('Activate')" outlined @click="open = true" />
     </div>
-    <Dialog v-model:visible="open" modal :header="activated ? 'Valetudo Genuine Advantage' : 'Activation Required'" class="w-full max-w-lg" @hide="close">
+    <Dialog v-model:visible="open" modal :header="activated ? $t('Valetudo Genuine Advantage') : $t('Activation Required')" class="w-full max-w-lg" @hide="close">
         <template v-if="activated">
-            <p class="font-semibold">Licensed Product</p><p class="muted mt-2">Valetudo is activated with a digital license.</p>
-            <div class="panel mt-4 font-mono text-sm"><p>LICENSE TYPE: Unlimited Company License</p><p>REGISTERED TO: Hackerman</p></div>
-            <div class="mt-5 flex justify-end gap-2"><Button label="Close" text @click="close" /><Button label="View Keygen again" :loading="loading" @click="showKeygen(true)" /></div>
+            <p class="font-semibold">{{ $t("Licensed Product") }}</p><p class="muted mt-2">{{ $t("Valetudo is activated with a digital license.") }}</p>
+            <div class="panel mt-4 font-mono text-sm"><p>{{ $t("LICENSE TYPE: Unlimited Company License") }}</p><p>{{ $t("REGISTERED TO: Hackerman") }}</p></div>
+            <div class="mt-5 flex justify-end gap-2"><Button :label='$t("Close")' text @click="close" /><Button :label='$t("View Keygen again")' :loading="loading" @click="showKeygen(true)" /></div>
         </template>
         <template v-else>
-            <p>Your Evaluation License for Valetudo has expired.</p><p class="muted mt-2">Continued use of this software requires a valid Valetudo subscription.</p>
-            <div class="panel mt-4"><p class="font-mono font-bold">&gt; Cloud Activation</p><p class="muted mt-2 text-sm">Automatically fetch a license from the Valetudo Licensing Server.</p>
-                <Button v-if="cloud === 'idle'" label="Activate Valetudo now" class="mt-3" @click="cloudActivate" />
-                <p v-else-if="cloud === 'connecting'" role="status" class="mt-3">Handshaking with licensing.valetudo.cloud...</p>
-                <div v-else class="mt-3"><Message severity="error">CONNECTION TIMED OUT (Error 000)</Message><Button label="Activate by Phone" outlined :loading="loading" @click="showKeygen(false)" /></div>
+            <p>{{ $t("Your Evaluation License for Valetudo has expired.") }}</p><p class="muted mt-2">{{ $t("Continued use of this software requires a valid Valetudo subscription.") }}</p>
+            <div class="panel mt-4"><p class="font-mono font-bold">&gt; {{ $t("Cloud Activation") }}</p><p class="muted mt-2 text-sm">{{ $t("Automatically fetch a license from the Valetudo Licensing Server.") }}</p>
+                <Button v-if="cloud === 'idle'" :label='$t("Activate Valetudo now")' class="mt-3" @click="cloudActivate" />
+                <p v-else-if="cloud === 'connecting'" role="status" class="mt-3">{{ $t("Handshaking with licensing.valetudo.cloud...") }}</p>
+                <div v-else class="mt-3"><Message severity="error">{{ $t("CONNECTION TIMED OUT (Error 000)") }}</Message><Button :label='$t("Activate by Phone")' outlined :loading="loading" @click="showKeygen(false)" /></div>
             </div>
-            <Message v-if="assetError" severity="error" class="mt-3">Activation assets could not be loaded. Retry the phone activation.</Message>
-            <label class="mt-4 flex flex-col gap-2">Enter License Key<InputText v-model="key" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" class="w-full font-mono" @input="invalid = false" /></label>
-            <Message v-if="invalid" severity="error" class="mt-2">Invalid checksum or revoked key.</Message>
-            <div class="mt-5 flex justify-end gap-2"><Button label="Cancel" text @click="close" /><Button label="Activate" :disabled="key.length < 5" @click="manualActivate" /></div>
+            <Message v-if="assetError" severity="error" class="mt-3">{{ $t("Activation assets could not be loaded. Retry the phone activation.") }}</Message>
+            <label class="mt-4 flex flex-col gap-2">{{ $t("Enter License Key") }}<InputText v-model="key" :placeholder='$t("XXXXX-XXXXX-XXXXX-XXXXX-XXXXX")' class="w-full font-mono" @input="invalid = false" /></label>
+            <Message v-if="invalid" severity="error" class="mt-2">{{ $t("Invalid checksum or revoked key.") }}</Message>
+            <div class="mt-5 flex justify-end gap-2"><Button :label='$t("Cancel")' text @click="close" /><Button :label='$t("Activate")' :disabled="key.length < 5" @click="manualActivate" /></div>
         </template>
     </Dialog>
-    <div v-if="keygen" class="fixed inset-0 z-[9999] bg-black" role="dialog" aria-modal="true" aria-label="Valetudo keygen">
+    <div v-if="keygen" class="fixed inset-0 z-[9999] bg-black" role="dialog" aria-modal="true" :aria-label='$t("Valetudo keygen")'>
         <canvas ref="canvas" class="h-full w-full" aria-hidden="true" />
-        <div class="absolute bottom-5 right-5 flex gap-2"><Button :label="muted ? 'Unmute' : 'Mute'" @click="muted = !muted" /><Button v-if="cracked || replay" label="Exit" @click="exitKeygen" /></div>
+        <div class="absolute bottom-5 right-5 flex gap-2"><Button :label="muted ? $t('Unmute') : $t('Mute')" @click="muted = !muted" /><Button v-if="cracked || replay" :label='$t("Exit")' @click="exitKeygen" /></div>
     </div>
 </template>

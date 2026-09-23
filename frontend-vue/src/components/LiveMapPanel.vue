@@ -12,6 +12,8 @@ import {
 } from "../../../frontend/src/api/client";
 import {useRobotMap} from "../composables/useRobotMap";
 import MapCanvas from "./MapCanvas.vue";
+import {translate} from "../i18n";
+import {valueLabel} from "../i18n/labels";
 
 type Point = {x: number; y: number};
 type MapZone = {a: Point; b: Point};
@@ -64,7 +66,7 @@ const maxX = computed(() => map.data.value?.size.x ?? 0);
 const maxY = computed(() => map.data.value?.size.y ?? 0);
 const action = useMutation({
     mutationFn: async () => {
-        if (!map.data.value) throw new Error("No map data");
+        if (!map.data.value) throw new Error(translate("No map data"));
         if (mode.value === "segments" && selectedSegmentIds.value.length) {
             await sendCleanSegmentsCommand({
                 segment_ids: selectedSegmentIds.value,
@@ -88,7 +90,7 @@ const action = useMutation({
                 y: Math.floor(target.value.y * map.data.value.pixelSize)
             });
         } else {
-            throw new Error("No map action selected");
+            throw new Error(translate("No map action selected"));
         }
         return fetchStateAttributes();
     },
@@ -164,18 +166,18 @@ function execute() {
 <template>
     <section class="panel flex min-h-[28rem] flex-col gap-3">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-xl font-semibold">Live map</h2>
-            <div v-if="map.data.value" class="flex flex-wrap gap-2" role="group" aria-label="Map interaction mode">
-                <Button v-for="option in modes" :key="option" :label="option === 'goto' ? 'Point' : option[0].toUpperCase() + option.slice(1)"
+            <h2 class="text-xl font-semibold">{{ $t("Live map") }}</h2>
+            <div v-if="map.data.value" class="flex flex-wrap gap-2" role="group" :aria-label='$t("Map interaction mode")'>
+                <Button v-for="option in modes" :key="option" :label="valueLabel(option)"
                     :outlined="mode !== option" size="small" @click="setMode(option)" />
             </div>
         </div>
-        <div v-if="map.isPending.value" role="status" class="flex flex-1 items-center justify-center">Loading map…</div>
+        <div v-if="map.isPending.value" role="status" class="flex flex-1 items-center justify-center">{{ $t("Loading map…") }}</div>
         <div v-else-if="map.isError.value" class="flex flex-1 flex-col items-center justify-center gap-3">
-            <Message severity="error">Unable to load map data.</Message>
-            <Button label="Retry" @click="map.refetch()" />
+            <Message severity="error">{{ $t("Unable to load map data.") }}</Message>
+            <Button :label='$t("Retry")' @click="map.refetch()" />
         </div>
-        <p v-else-if="!map.data.value" class="muted">No map data reported.</p>
+        <p v-else-if="!map.data.value" class="muted">{{ $t("No map data reported.") }}</p>
         <template v-else>
             <div class="h-[28rem] overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] md:h-[36rem]">
                 <MapCanvas :map="map.data.value" :palette-mode="paletteMode" :mode="mode"
@@ -183,27 +185,27 @@ function execute() {
                     @segment-click="toggleSegment" @zone-created="addZone" @point-selected="selectPoint" />
             </div>
             <div class="flex flex-wrap items-center gap-3">
-                <p v-if="mode === 'zones'" class="muted text-sm">Drag on the map to select an area.</p>
-                <p v-if="mode === 'goto'" class="muted text-sm">Tap the destination on the map.</p>
-                <div v-if="mode === 'goto'" class="flex flex-wrap items-end gap-2" role="group" aria-label="Point coordinates"><label class="flex flex-col gap-1 text-sm">X (cm)<InputNumber v-model="pointX" :min="0" :max="maxX" :use-grouping="false" input-class="w-24" /></label><label class="flex flex-col gap-1 text-sm">Y (cm)<InputNumber v-model="pointY" :min="0" :max="maxY" :use-grouping="false" input-class="w-24" /></label><Button label="Set point" outlined @click="setPointFromCoordinates" /></div>
-                <div v-if="mode === 'zones'" class="flex flex-wrap items-end gap-2" role="group" aria-label="Zone coordinates"><label v-for="axis in ['X1', 'Y1', 'X2', 'Y2']" :key="axis" class="flex flex-col gap-1 text-sm">{{ axis }} (cm)<InputNumber v-if="axis === 'X1'" v-model="zoneX1" :min="0" :max="maxX" :use-grouping="false" input-class="w-20" /><InputNumber v-else-if="axis === 'Y1'" v-model="zoneY1" :min="0" :max="maxY" :use-grouping="false" input-class="w-20" /><InputNumber v-else-if="axis === 'X2'" v-model="zoneX2" :min="0" :max="maxX" :use-grouping="false" input-class="w-20" /><InputNumber v-else v-model="zoneY2" :min="0" :max="maxY" :use-grouping="false" input-class="w-20" /></label><Button label="Add zone" outlined :disabled="zoneX1 === zoneX2 || zoneY1 === zoneY2 || zones.length >= (zoneProperties.data.value?.zoneCount.max ?? 1)" @click="addCoordinateZone" /></div>
-                <p v-if="mode === 'segments'" class="muted text-sm">Tap rooms to select them.</p>
-                <div v-if="mode === 'segments'" class="flex flex-wrap gap-2" role="group" aria-label="Select rooms">
+                <p v-if="mode === 'zones'" class="muted text-sm">{{ $t("Drag on the map to select an area.") }}</p>
+                <p v-if="mode === 'goto'" class="muted text-sm">{{ $t("Tap the destination on the map.") }}</p>
+                <div v-if="mode === 'goto'" class="flex flex-wrap items-end gap-2" role="group" :aria-label='$t("Point coordinates")'><label class="flex flex-col gap-1 text-sm">{{ $t("X (cm)") }}<InputNumber v-model="pointX" :min="0" :max="maxX" :use-grouping="false" input-class="w-24" /></label><label class="flex flex-col gap-1 text-sm">{{ $t("Y (cm)") }}<InputNumber v-model="pointY" :min="0" :max="maxY" :use-grouping="false" input-class="w-24" /></label><Button :label='$t("Set point")' outlined @click="setPointFromCoordinates" /></div>
+                <div v-if="mode === 'zones'" class="flex flex-wrap items-end gap-2" role="group" :aria-label='$t("Zone coordinates")'><label v-for="axis in ['X1', 'Y1', 'X2', 'Y2']" :key="axis" class="flex flex-col gap-1 text-sm">{{ axis }} ({{ $t("cm") }})<InputNumber v-if="axis === 'X1'" v-model="zoneX1" :min="0" :max="maxX" :use-grouping="false" input-class="w-20" /><InputNumber v-else-if="axis === 'Y1'" v-model="zoneY1" :min="0" :max="maxY" :use-grouping="false" input-class="w-20" /><InputNumber v-else-if="axis === 'X2'" v-model="zoneX2" :min="0" :max="maxX" :use-grouping="false" input-class="w-20" /><InputNumber v-else v-model="zoneY2" :min="0" :max="maxY" :use-grouping="false" input-class="w-20" /></label><Button :label='$t("Add zone")' outlined :disabled="zoneX1 === zoneX2 || zoneY1 === zoneY2 || zones.length >= (zoneProperties.data.value?.zoneCount.max ?? 1)" @click="addCoordinateZone" /></div>
+                <p v-if="mode === 'segments'" class="muted text-sm">{{ $t("Tap rooms to select them.") }}</p>
+                <div v-if="mode === 'segments'" class="flex flex-wrap gap-2" role="group" :aria-label='$t("Select rooms")'>
                     <Button v-for="layer in map.data.value.layers.filter(layer => layer.type === 'segment' && layer.metaData.segmentId)" :key="layer.metaData.segmentId" :label="layer.metaData.name || layer.metaData.segmentId" size="small" :outlined="!selectedSegmentIds.includes(layer.metaData.segmentId!)" @click="toggleSegment(layer.metaData.segmentId!)" />
                 </div>
-                <p v-if="mode === 'pan'" class="muted text-sm">Drag or pinch to move the map.</p>
+                <p v-if="mode === 'pan'" class="muted text-sm">{{ $t("Drag or pinch to move the map.") }}</p>
                 <InputNumber v-if="(mode === 'segments' || mode === 'zones') && maxIterations > 1"
                     v-model="iterations" input-id="map-iterations" :min="minIterations" :max="maxIterations"
                     show-buttons button-layout="horizontal" class="w-36" input-class="!w-16 !min-w-0" />
-                <label v-if="(mode === 'segments' || mode === 'zones') && maxIterations > 1" for="map-iterations">Passes</label>
-                <Button v-if="pending" label="Clear selection" text @click="clear" />
-                <Button v-if="pending" :label="mode === 'goto' ? 'Go to point' : mode === 'segments' ? `Clean ${selectedSegmentIds.length} rooms` : `Clean ${zones.length} zones`"
+                <label v-if="(mode === 'segments' || mode === 'zones') && maxIterations > 1" for="map-iterations">{{ $t("Passes") }}</label>
+                <Button v-if="pending" :label='$t("Clear selection")' text @click="clear" />
+                <Button v-if="pending" :label="mode === 'goto' ? $t('Go to point') : mode === 'segments' ? $t('Clean {count} rooms', {count: selectedSegmentIds.length}) : $t('Clean {count} zones', {count: zones.length})"
                     :disabled="!canAct || action.isPending.value || (mode === 'zones' && (zoneProperties.isPending.value || zoneProperties.isError.value || zones.length < (zoneProperties.data.value?.zoneCount.min ?? 1))) || (mode === 'segments' && (segmentation.isPending.value || segmentation.isError.value))"
                     :loading="action.isPending.value" @click="execute" />
             </div>
-            <Message v-if="action.isError.value" severity="error">Map action failed. Check the robot state and retry.</Message>
-            <Message v-if="segmentation.isError.value && mode === 'segments'" severity="error">Unable to load segment limits.</Message>
-            <Message v-if="zoneProperties.isError.value && mode === 'zones'" severity="error">Unable to load zone limits.</Message>
+            <Message v-if="action.isError.value" severity="error">{{ $t("Map action failed. Check the robot state and retry.") }}</Message>
+            <Message v-if="segmentation.isError.value && mode === 'segments'" severity="error">{{ $t("Unable to load segment limits.") }}</Message>
+            <Message v-if="zoneProperties.isError.value && mode === 'zones'" severity="error">{{ $t("Unable to load zone limits.") }}</Message>
         </template>
     </section>
 </template>

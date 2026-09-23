@@ -5,6 +5,7 @@ import {definePreset} from "@primeuix/themes";
 import Aura from "@primeuix/themes/aura";
 import App from "./App.vue";
 import router from "./router";
+import {i18n} from "./i18n";
 import "./style.css";
 
 const ValetudoPreset = definePreset(Aura, {
@@ -28,6 +29,7 @@ const ValetudoPreset = definePreset(Aura, {
 createApp(App)
     .use(VueQueryPlugin)
     .use(router)
+    .use(i18n)
     .use(PrimeVue, {
         theme: {
             preset: ValetudoPreset,

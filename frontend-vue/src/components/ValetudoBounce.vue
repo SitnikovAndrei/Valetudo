@@ -41,5 +41,5 @@ onBeforeUnmount(() => {cancelAnimationFrame(frame); window.removeEventListener("
 </script>
 
 <template>
-    <Teleport to="body"><div class="fixed inset-0 z-[1500] cursor-pointer overflow-hidden bg-black" role="dialog" aria-modal="true" aria-label="Valetudo bounce" @click="emit('close')"><img ref="image" :src="logo" alt="Valetudo" class="absolute left-0 top-0 w-[20vmin] min-w-[120px] max-w-[350px]" /></div></Teleport>
+    <Teleport to="body"><div class="fixed inset-0 z-[1500] cursor-pointer overflow-hidden bg-black" role="dialog" aria-modal="true" :aria-label='$t("Valetudo bounce")' @click="emit('close')"><img ref="image" :src="logo" :alt='$t("Valetudo")' class="absolute left-0 top-0 w-[20vmin] min-w-[120px] max-w-[350px]" /></div></Teleport>
 </template>

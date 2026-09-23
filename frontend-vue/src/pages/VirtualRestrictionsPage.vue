@@ -11,6 +11,7 @@ import {useRobotMap} from "../composables/useRobotMap";
 import {useRobotAttributes} from "../composables/useRobotAttributes";
 import MapCanvas from "../components/MapCanvas.vue";
 import {cloneJson} from "../cloneJson";
+import {valueLabel} from "../i18n/labels";
 
 type Shape = {a: Point; b: Point};
 const props = defineProps<{capabilities: Capability[]; paletteMode: "light" | "dark"}>();
@@ -64,18 +65,18 @@ function moveEntity(index: number, points: number[]) {if (canEdit.value && draft
 
 <template>
     <section class="panel">
-        <h1 class="mb-4 text-2xl font-bold">Virtual restrictions</h1>
-        <Message v-if="!capabilities.includes(Capability.CombinedVirtualRestrictions)" severity="warn">Virtual restrictions are unavailable on this robot.</Message>
-        <p v-else-if="map.isPending.value || properties.isPending.value" role="status">Loading map…</p>
-        <Message v-else-if="map.isError.value || properties.isError.value" severity="error">Unable to load map or restriction types.</Message>
+        <h1 class="mb-4 text-2xl font-bold">{{ $t("Virtual restrictions") }}</h1>
+        <Message v-if="!capabilities.includes(Capability.CombinedVirtualRestrictions)" severity="warn">{{ $t("Virtual restrictions are unavailable on this robot.") }}</Message>
+        <p v-else-if="map.isPending.value || properties.isPending.value" role="status">{{ $t("Loading map…") }}</p>
+        <Message v-else-if="map.isError.value || properties.isError.value" severity="error">{{ $t("Unable to load map or restriction types.") }}</Message>
         <template v-else-if="displayedMap">
-            <Message v-if="!canEdit" severity="info" class="mb-3">Dock the robot to edit virtual restrictions.</Message>
-            <div class="mb-3 flex flex-wrap gap-2"><Button label="Pan" :outlined="mode !== 'pan'" @click="mode = 'pan'" /><Button label="Add wall" :disabled="!canEdit" :outlined="mode !== 'wall'" @click="mode = 'wall'" /><Button v-if="properties.data.value?.supportedRestrictedZoneTypes.includes(ValetudoRestrictedZoneType.Regular)" label="Add no-go zone" :disabled="!canEdit" :outlined="mode !== 'regular'" @click="mode = 'regular'" /><Button v-if="properties.data.value?.supportedRestrictedZoneTypes.includes(ValetudoRestrictedZoneType.Mop)" label="Add no-mop zone" :disabled="!canEdit" :outlined="mode !== 'mop'" @click="mode = 'mop'" /></div>
-            <p class="muted mb-2 text-sm">{{ mode === 'pan' ? 'Drag an existing restriction to move it; drag elsewhere or pinch to move the map.' : 'Drag on the map to draw the restriction.' }}</p>
+            <Message v-if="!canEdit" severity="info" class="mb-3">{{ $t("Dock the robot to edit virtual restrictions.") }}</Message>
+            <div class="mb-3 flex flex-wrap gap-2"><Button :label='$t("Pan")' :outlined="mode !== 'pan'" @click="mode = 'pan'" /><Button :label='$t("Add wall")' :disabled="!canEdit" :outlined="mode !== 'wall'" @click="mode = 'wall'" /><Button v-if="properties.data.value?.supportedRestrictedZoneTypes.includes(ValetudoRestrictedZoneType.Regular)" :label='$t("Add no-go zone")' :disabled="!canEdit" :outlined="mode !== 'regular'" @click="mode = 'regular'" /><Button v-if="properties.data.value?.supportedRestrictedZoneTypes.includes(ValetudoRestrictedZoneType.Mop)" :label='$t("Add no-mop zone")' :disabled="!canEdit" :outlined="mode !== 'mop'" @click="mode = 'mop'" /></div>
+            <p class="muted mb-2 text-sm">{{ mode === 'pan' ? $t("Drag an existing restriction to move it; drag elsewhere or pinch to move the map.") : $t("Drag on the map to draw the restriction.") }}</p>
             <div class="h-[min(60vh,600px)] overflow-hidden rounded-xl" style="background: var(--app-bg)"><MapCanvas :map="displayedMap" :palette-mode="paletteMode" :mode="mode === 'wall' ? 'line' : mode === 'pan' ? 'pan' : 'rectangle'" :selected-segment-ids="[]" :zones="[]" :editable-entities="canEdit ? draft : []" @shape-created="addShape" @entity-updated="moveEntity" /></div>
-            <div v-for="(entity, index) in draft" :key="index" class="border-b py-3" style="border-color: var(--app-border)"><div class="mb-2 flex items-center justify-between"><strong>{{ entity.type.replace(/_/g, ' ') }}</strong><Button label="Remove" text severity="danger" :disabled="!canEdit" @click="draft.splice(index, 1)" /></div><div class="flex flex-wrap gap-2"><label v-for="(coordinate, pointIndex) in entity.points" :key="pointIndex" class="flex items-center gap-1 text-sm">{{ pointIndex % 2 ? 'Y' : 'X' }}{{ Math.floor(pointIndex / 2) + 1 }} <InputNumber :model-value="coordinate" :disabled="!canEdit" :min="0" :max="pointIndex % 2 ? maxY : maxX" :use-grouping="false" input-class="w-24" @update:model-value="setCoordinate(index, pointIndex, $event)" /></label></div></div>
-            <div class="mt-4 flex gap-2"><Button label="Save" :disabled="!dirty || !canEdit || save.isPending.value" :loading="save.isPending.value" @click="save.mutate()" /><Button label="Discard" outlined :disabled="!dirty" @click="discard" /></div>
-            <Message v-if="save.isError.value" severity="error" class="mt-3">Unable to save restrictions.</Message>
+            <div v-for="(entity, index) in draft" :key="index" class="border-b py-3" style="border-color: var(--app-border)"><div class="mb-2 flex items-center justify-between"><strong>{{ valueLabel(entity.type) }}</strong><Button :label='$t("Remove")' text severity="danger" :disabled="!canEdit" @click="draft.splice(index, 1)" /></div><div class="flex flex-wrap gap-2"><label v-for="(coordinate, pointIndex) in entity.points" :key="pointIndex" class="flex items-center gap-1 text-sm">{{ pointIndex % 2 ? 'Y' : 'X' }}{{ Math.floor(pointIndex / 2) + 1 }} <InputNumber :model-value="coordinate" :disabled="!canEdit" :min="0" :max="pointIndex % 2 ? maxY : maxX" :use-grouping="false" input-class="w-24" @update:model-value="setCoordinate(index, pointIndex, $event)" /></label></div></div>
+            <div class="mt-4 flex gap-2"><Button :label='$t("Save")' :disabled="!dirty || !canEdit || save.isPending.value" :loading="save.isPending.value" @click="save.mutate()" /><Button :label='$t("Discard")' outlined :disabled="!dirty" @click="discard" /></div>
+            <Message v-if="save.isError.value" severity="error" class="mt-3">{{ $t("Unable to save restrictions.") }}</Message>
         </template>
     </section>
 </template>

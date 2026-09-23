@@ -48,25 +48,25 @@ function togglePersistent(value: boolean) {
 
 <template>
     <section class="panel">
-        <h1 class="mb-1 text-2xl font-bold">Map options</h1>
-        <p class="muted mb-5">Robot managed map features and utilities</p>
+        <h1 class="mb-1 text-2xl font-bold">{{ $t("Map options") }}</h1>
+        <p class="muted mb-5">{{ $t("Robot managed map features and utilities") }}</p>
         <div class="grid gap-3 sm:grid-cols-2">
-            <label v-if="capabilities.includes(Capability.PersistentMapControl)" class="nav-card flex items-center gap-2"><Checkbox :model-value="persistent.data.value?.enabled ?? false" binary :disabled="persistent.isPending.value || mutation.isPending.value" @update:model-value="togglePersistent(Boolean($event))" /> Persistent maps</label>
-            <Button v-if="capabilities.includes(Capability.MappingPass)" label="Start mapping pass" outlined :disabled="mutation.isPending.value" @click="confirmation = 'mapping'" />
-            <Button v-if="capabilities.includes(Capability.MapReset)" label="Reset map" severity="danger" outlined :disabled="mutation.isPending.value" @click="confirmation = 'reset'" />
-            <Button label="Export ValetudoMap" outlined :disabled="!map.data.value" @click="exportMap" />
-            <RouterLink v-if="capabilities.includes(Capability.CombinedVirtualRestrictions)" class="nav-card" to="/options/map_management/virtual_restrictions">Virtual restrictions</RouterLink>
-            <RouterLink v-if="capabilities.includes(Capability.MapAnnotations)" class="nav-card" to="/options/map_management/annotations">Map annotations</RouterLink>
-            <RouterLink v-if="capabilities.includes(Capability.MapSegmentEdit) || capabilities.includes(Capability.MapSegmentRename) || capabilities.includes(Capability.MapSegmentMaterialControl)" class="nav-card" to="/options/map_management/segments">Segment management</RouterLink>
-            <RouterLink class="nav-card" to="/options/map_management/robot_coverage">Robot coverage map</RouterLink>
-            <RouterLink v-if="capabilities.includes(Capability.Duststreaming) && duststream.data.value?.enabled" class="nav-card" to="/options/map_management/spectator">Spectator map</RouterLink>
+            <label v-if="capabilities.includes(Capability.PersistentMapControl)" class="nav-card flex items-center gap-2"><Checkbox :model-value="persistent.data.value?.enabled ?? false" binary :disabled="persistent.isPending.value || mutation.isPending.value" @update:model-value="togglePersistent(Boolean($event))" /> {{ $t("Persistent maps") }}</label>
+            <Button v-if="capabilities.includes(Capability.MappingPass)" :label='$t("Start mapping pass")' outlined :disabled="mutation.isPending.value" @click="confirmation = 'mapping'" />
+            <Button v-if="capabilities.includes(Capability.MapReset)" :label='$t("Reset map")' severity="danger" outlined :disabled="mutation.isPending.value" @click="confirmation = 'reset'" />
+            <Button :label='$t("Export ValetudoMap")' outlined :disabled="!map.data.value" @click="exportMap" />
+            <RouterLink v-if="capabilities.includes(Capability.CombinedVirtualRestrictions)" class="nav-card" to="/options/map_management/virtual_restrictions">{{ $t("Virtual restrictions") }}</RouterLink>
+            <RouterLink v-if="capabilities.includes(Capability.MapAnnotations)" class="nav-card" to="/options/map_management/annotations">{{ $t("Map annotations") }}</RouterLink>
+            <RouterLink v-if="capabilities.includes(Capability.MapSegmentEdit) || capabilities.includes(Capability.MapSegmentRename) || capabilities.includes(Capability.MapSegmentMaterialControl)" class="nav-card" to="/options/map_management/segments">{{ $t("Segment management") }}</RouterLink>
+            <RouterLink class="nav-card" to="/options/map_management/robot_coverage">{{ $t("Robot coverage map") }}</RouterLink>
+            <RouterLink v-if="capabilities.includes(Capability.Duststreaming) && duststream.data.value?.enabled" class="nav-card" to="/options/map_management/spectator">{{ $t("Spectator map") }}</RouterLink>
         </div>
-        <Message v-if="persistent.isError.value || map.isError.value || mutation.isError.value" severity="error" class="mt-4">A map request failed.</Message>
-        <Dialog :visible="confirmation !== null" modal :header="confirmation === 'reset' ? 'Reset map?' : confirmation === 'mapping' ? 'Start mapping pass?' : 'Disable persistent maps?'" class="max-w-md" @update:visible="confirmation = null">
-            <p v-if="confirmation === 'disable'">This will delete the currently stored map.</p>
-            <p v-else-if="confirmation === 'reset'">Do you really want to reset the map?</p>
-            <p v-else>Do you really want to start a mapping pass?</p>
-            <div class="mt-5 flex justify-end gap-2"><Button label="Cancel" text @click="confirmation = null" /><Button label="Confirm" :loading="mutation.isPending.value" @click="confirmation && mutation.mutate(confirmation)" /></div>
+        <Message v-if="persistent.isError.value || map.isError.value || mutation.isError.value" severity="error" class="mt-4">{{ $t("A map request failed.") }}</Message>
+        <Dialog :visible="confirmation !== null" modal :header="confirmation === 'reset' ? 'Reset map?' : confirmation === 'mapping' ? $t('Start mapping pass?') : $t('Disable persistent maps?')" class="max-w-md" @update:visible="confirmation = null">
+            <p v-if="confirmation === 'disable'">{{ $t("This will delete the currently stored map.") }}</p>
+            <p v-else-if="confirmation === 'reset'">{{ $t("Do you really want to reset the map?") }}</p>
+            <p v-else>{{ $t("Do you really want to start a mapping pass?") }}</p>
+            <div class="mt-5 flex justify-end gap-2"><Button :label='$t("Cancel")' text @click="confirmation = null" /><Button :label='$t("Confirm")' :loading="mutation.isPending.value" @click="confirmation && mutation.mutate(confirmation)" /></div>
         </Dialog>
     </section>
 </template>

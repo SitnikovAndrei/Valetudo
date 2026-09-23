@@ -20,7 +20,6 @@ export default createRouter({
         {path: "/options/map_management", component: () => import("./pages/MapManagementPage.vue")},
         {path: "/options/valetudo", component: () => import("./pages/ValetudoOptionsPage.vue")},
         {path: "/options/robot/quirks", component: () => import("./pages/QuirksPage.vue")},
-        {path: "/valetudo/updater", component: () => import("./pages/UpdaterPage.vue")},
         {path: "/valetudo/timers", component: () => import("./pages/TimersPage.vue")},
         {path: "/options/robot", component: () => import("./pages/RobotOptionsPage.vue")},
         {path: "/options/robot/system", component: () => import("./pages/SystemRobotOptionsPage.vue")},
@@ -32,10 +31,7 @@ export default createRouter({
         {path: "/options/map_management/annotations", component: () => import("./pages/MapAnnotationsPage.vue")},
         {path: "/options/map_management/segments", component: () => import("./pages/SegmentsPage.vue")},
         {path: "/options/map_management/robot_coverage", component: () => import("./pages/RobotCoveragePage.vue")},
-        {path: "/valetudo/about", component: () => import("./pages/MarkdownPage.vue"), props: {page: "about"}},
-        {path: "/valetudo/help", component: () => import("./pages/MarkdownPage.vue"), props: {page: "help"}},
         {path: "/options/valetudo/analytics", component: () => import("./pages/AnalyticsPage.vue")},
-        {path: "/valetudo/ai", component: () => import("./pages/AIPage.vue")},
         {path: "/:pathMatch(.*)*", redirect: "/"}
     ]
 });

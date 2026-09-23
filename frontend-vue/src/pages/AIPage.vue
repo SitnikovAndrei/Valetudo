@@ -57,12 +57,12 @@ function key(event: KeyboardEvent) {if (event.key === "Enter" && !event.shiftKey
 
 <template>
     <section class="panel flex h-[70vh] max-h-[90vh] flex-col">
-        <h1 class="mb-4 text-2xl font-bold">AI Assistant</h1>
+        <h1 class="mb-4 text-2xl font-bold">{{ $t("AI Assistant") }}</h1>
         <div class="flex-1 space-y-3 overflow-y-auto p-2" role="log" aria-live="polite">
             <div v-for="(message, index) in messages" :key="index" class="flex" :class="message.sender === 'user' ? 'justify-end' : 'justify-start'"><p class="max-w-[75%] rounded-2xl p-3 whitespace-pre-wrap" :style="{background: message.sender === 'user' ? 'var(--app-accent)' : 'var(--app-bg)', color: message.sender === 'user' ? 'white' : 'var(--app-text)'}"><Woodcock v-if="/(woodcock|pe{2,}nt)/i.test(message.text)" :facing="message.sender === 'user' ? 'left' : 'right'" />{{ /(woodcock|pe{2,}nt)/i.test(message.text) ? '' : message.text }}</p></div>
-            <p v-if="loading" class="muted">Thinking…</p><div ref="end" />
+            <p v-if="loading" class="muted">{{ $t("Thinking…") }}</p><div ref="end" />
         </div>
-        <div class="mt-3 flex items-end gap-2 border-t pt-3" style="border-color: var(--app-border)"><Textarea ref="field" v-model="input" class="flex-1" rows="2" :disabled="finished" :placeholder="finished ? 'Session ended. Start a new one?' : 'Tell me about your problems…'" @keydown="key" /><Button :label="finished ? 'Restart' : 'Send'" :disabled="!finished && (loading || !input.trim())" @click="finished ? reset() : send()" /></div>
+        <div class="mt-3 flex items-end gap-2 border-t pt-3" style="border-color: var(--app-border)"><Textarea ref="field" v-model="input" class="flex-1" rows="2" :disabled="finished" :placeholder="finished ? $t('Session ended. Start a new one?') : $t('Tell me about your problems…')" @keydown="key" /><Button :label="finished ? $t('Restart') : $t('Send')" :disabled="!finished && (loading || !input.trim())" @click="finished ? reset() : send()" /></div>
         <ValetudoBounce v-if="showEgg" @close="showEgg = false" />
     </section>
 </template>

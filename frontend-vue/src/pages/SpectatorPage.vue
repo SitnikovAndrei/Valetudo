@@ -24,12 +24,12 @@ onBeforeUnmount(() => window.removeEventListener("keydown", closeFullscreen));
 
 <template>
     <section class="panel">
-        <h1 class="mb-4 text-2xl font-bold">Spectator map</h1>
-        <p v-if="map.isPending.value" role="status">Loading map…</p>
-        <Message v-else-if="map.isError.value" severity="error">Unable to load map. <Button label="Retry" text @click="map.refetch()" /></Message>
+        <h1 class="mb-4 text-2xl font-bold">{{ $t("Spectator map") }}</h1>
+        <p v-if="map.isPending.value" role="status">{{ $t("Loading map…") }}</p>
+        <Message v-else-if="map.isError.value" severity="error">{{ $t("Unable to load map.") }} <Button :label='$t("Retry")' text @click="map.refetch()" /></Message>
         <div v-else-if="map.data.value" class="relative h-[min(70vh,700px)] overflow-hidden rounded-xl" style="background: var(--app-bg)">
             <MapCanvas :map="map.data.value" :palette-mode="paletteMode" mode="pan" :selected-segment-ids="[]" :zones="[]" />
-            <button v-if="capabilities.includes(Capability.Duststreaming) && configuration.data.value?.enabled && properties.data.value?.duststreamerInstalled" type="button" class="absolute bottom-4 right-4 z-10 overflow-hidden rounded-lg bg-black" :class="size === 'fullscreen' ? 'fixed inset-0 h-full w-full' : ''" :style="size === 'fullscreen' ? undefined : {width: ({small: '25vmin', medium: '40vmin', large: '65vmin', xlarge: '85vmin'} as Record<string, string>)[size], aspectRatio: `${properties.data.value.width} / ${properties.data.value.height}`}" aria-label="Change camera size" @click="cycle">
+            <button v-if="capabilities.includes(Capability.Duststreaming) && configuration.data.value?.enabled && properties.data.value?.duststreamerInstalled" type="button" class="absolute bottom-4 right-4 z-10 overflow-hidden rounded-lg bg-black" :class="size === 'fullscreen' ? 'fixed inset-0 h-full w-full' : ''" :style="size === 'fullscreen' ? undefined : {width: ({small: '25vmin', medium: '40vmin', large: '65vmin', xlarge: '85vmin'} as Record<string, string>)[size], aspectRatio: `${properties.data.value.width} / ${properties.data.value.height}`}" :aria-label='$t("Change camera size")' @click="cycle">
                 <DuststreamCanvas :width="properties.data.value.width" :height="properties.data.value.height" />
             </button>
         </div>
