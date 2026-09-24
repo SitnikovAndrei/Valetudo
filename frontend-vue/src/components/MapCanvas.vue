@@ -255,6 +255,20 @@ function onWheel(event: WheelEvent) {
     draw();
 }
 
+function zoomIn() {
+    if (!canvas.value) return;
+    viewport.zoom(1.2, {x: canvas.value.clientWidth / 2, y: canvas.value.clientHeight / 2});
+    draw();
+}
+
+function zoomOut() {
+    if (!canvas.value) return;
+    viewport.zoom(1 / 1.2, {x: canvas.value.clientWidth / 2, y: canvas.value.clientHeight / 2});
+    draw();
+}
+
+defineExpose({zoomIn, zoomOut, fitMap: () => {fitMap(); draw();}});
+
 function onKeyDown(event: KeyboardEvent) {
     const element = canvas.value;
     if (!element) return;

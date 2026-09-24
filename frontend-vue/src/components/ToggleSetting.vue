@@ -3,6 +3,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Checkbox from "primevue/checkbox";
 import Message from "primevue/message";
 import type {SimpleToggleState} from "../api/types";
+import SettingRow from "./SettingRow.vue";
 
 const props = defineProps<{name: string; description?: string; queryKey: string; fetchState: () => Promise<SimpleToggleState>; updateState: (enabled: boolean) => Promise<void>}>();
 const queryClient = useQueryClient();
@@ -11,8 +12,8 @@ const mutation = useMutation({mutationFn: props.updateState, onSuccess: () => qu
 </script>
 
 <template>
-    <div class="border-b py-4" style="border-color: var(--app-border)">
-        <label class="flex items-center justify-between gap-4"><span><span class="block font-semibold">{{ name }}</span><span v-if="description" class="muted text-sm">{{ description }}</span></span><Checkbox :model-value="state.data.value?.enabled ?? false" binary :disabled="state.isPending.value || state.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(Boolean($event))" /></label>
+    <SettingRow :name="name" :description="description">
+        <Checkbox :model-value="state.data.value?.enabled ?? false" binary :aria-label="name" :disabled="state.isPending.value || state.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(Boolean($event))" />
         <Message v-if="state.isError.value || mutation.isError.value" severity="error" class="mt-2">{{ $t("Unable to load or update {name}.", {name}) }}</Message>
-    </div>
+    </SettingRow>
 </template>

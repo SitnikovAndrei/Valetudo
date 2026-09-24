@@ -8,6 +8,7 @@ import {Capability, type ValetudoInformation, type ValetudoDataPoint} from "../a
 import {fetchTotalStatistics} from "../api/client";
 import {statisticsAchievements} from "../robot/res/StatisticsAchievements";
 import {translate} from "../i18n";
+import {formatStatisticsValue} from "../statistics";
 
 const props = defineProps<{capabilities: Capability[]; information: ValetudoInformation}>();
 const supported = computed(() => props.capabilities.includes(Capability.TotalStatistics));
@@ -27,13 +28,6 @@ function label(type: ValetudoDataPoint["type"]): string {
     return {count: translate("Cleanups"), time: translate("Cleaning time"), area: translate("Cleaned area")}[type];
 }
 
-function value(point: ValetudoDataPoint): string {
-    switch (point.type) {
-        case "count": return String(point.value);
-        case "time": return `${Math.floor(point.value / 3600).toString().padStart(2, "0")}h ${Math.floor((point.value % 3600) / 60).toString().padStart(2, "0")}m ${(point.value % 60).toString().padStart(2, "0")}s`;
-        case "area": return `${(point.value / 10000).toFixed(2).padStart(6, "0")} m²`;
-    }
-}
 </script>
 
 <template>
@@ -51,7 +45,7 @@ function value(point: ValetudoDataPoint): string {
                 <div class="mb-4 flex h-32 w-32 items-center justify-center self-center rounded-full border-[10px] text-center font-bold" :class="latest(point) ? 'border-amber-400 bg-blue-900 text-amber-300' : 'border-gray-600 bg-gray-800 text-gray-400'">{{ latest(point)?.title ? translate(latest(point)!.title) : '?' }}</div>
                 <p class="mb-3 text-sm">{{ latest(point)?.description ? translate(latest(point)!.description) : $t("No achievement yet") }}</p>
                 <p class="muted mb-2">{{ label(point.type) }}</p>
-                <p class="text-3xl font-bold">{{ value(point) }}</p>
+                <p class="text-3xl font-bold">{{ formatStatisticsValue(point) }}</p>
                 <Button :label='$t("Achievement overview")' text class="mt-3" @click="selected = point" />
             </div>
         </div>
@@ -60,7 +54,7 @@ function value(point: ValetudoDataPoint): string {
                 <div v-for="achievement in [...statisticsAchievements[selected.type]].reverse()" :key="achievement.value" class="rounded-xl border p-4" style="border-color: var(--app-border)">
                     <strong>{{ selected.value >= achievement.value ? translate(achievement.title) : '?' }}</strong>
                     <p class="muted mt-2 text-sm">{{ selected.value >= achievement.value ? translate(achievement.description) : $t("Not yet achieved") }}</p>
-                    <p v-if="selected.value >= achievement.value" class="mt-3 text-sm">{{ $t("Achieved at") }} {{ value({...selected, value: achievement.value}) }}</p>
+                    <p v-if="selected.value >= achievement.value" class="mt-3 text-sm">{{ $t("Achieved at") }} {{ formatStatisticsValue({...selected, value: achievement.value}) }}</p>
                 </div>
             </div>
             <div class="mt-4 flex justify-end"><Button :label='$t("Close")' @click="selected = undefined" /></div>

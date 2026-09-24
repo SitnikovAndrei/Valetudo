@@ -67,7 +67,7 @@ const selections = computed(() => [
     {capability: Capability.MopDockMopDryingTimeControl, name: translate("Mop drying time"), description: mopDryingDescription.value, fetchValue: fetchMopDockMopDryingTime, fetchOptions: async () => {const properties = await fetchMopDockMopDryingTimeControlProperties(); mopDryingProperties.value = properties; return properties.supportedDurations;}, updateValue: (value: string) => sendMopDockMopDryingTime({duration: value as MopDockMopDryingDuration})}
 ]);
 const visibleSelections = computed(() => selections.value.filter(setting => props.capabilities.includes(setting.capability)));
-const systemOptionsSupported = computed(() => props.capabilities.some(capability => [Capability.SpeakerVolumeControl, Capability.SpeakerTest, Capability.VoicePackManagement, Capability.DoNotDisturb].includes(capability)));
+const systemOptionsSupported = computed(() => props.capabilities.some(capability => [Capability.SpeakerVolumeControl, Capability.SpeakerTest, Capability.VoicePackManagement].includes(capability)));
 const locate = useMutation({mutationFn: sendLocateCommand});
 </script>
 

@@ -1,23 +1,15 @@
 <script setup lang="ts">
 import {computed} from "vue";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
+import {useMutation, useQuery} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
-import Select from "primevue/select";
-import {Capability} from "../api/types";
-import {RobotAttributeClass, type PresetSelectionState, type RobotAttribute} from "../api/RawRobotState";
-import {fetchCurrentStatistics, fetchPresetSelections, sendAutoEmptyDockManualTriggerCommand, sendMopDockCleanManualTriggerCommand, sendMopDockDryManualTriggerCommand, updatePresetSelection} from "../api/client";
+import {Capability, type ValetudoDataPoint} from "../api/types";
+import {RobotAttributeClass, type RobotAttribute} from "../api/RawRobotState";
+import {fetchCurrentStatistics, fetchTotalStatistics, sendAutoEmptyDockManualTriggerCommand, sendMopDockCleanManualTriggerCommand, sendMopDockDryManualTriggerCommand} from "../api/client";
 import {translate} from "../i18n";
-import {valueLabel} from "../i18n/labels";
+import {formatStatisticsValue} from "../statistics";
 
 const props = defineProps<{capabilities: Capability[]; attributes: RobotAttribute[]}>();
-const queryClient = useQueryClient();
-const presetControls = computed(() => [
-    {capability: Capability.FanSpeedControl, type: "fan_speed", label: translate("Fan speed")},
-    {capability: Capability.WaterUsageControl, type: "water_grade", label: translate("Water usage")},
-    {capability: Capability.OperationModeControl, type: "operation_mode", label: translate("Operation mode")}
-] as const);
-const visiblePresets = computed(() => presetControls.value.filter(control => props.capabilities.includes(control.capability)));
 const robotState = computed(() => props.attributes.find(attribute => attribute.__class === RobotAttributeClass.StatusState)?.value);
 const dockState = computed(() => props.attributes.find(attribute => attribute.__class === RobotAttributeClass.DockStatusState)?.value ?? "idle");
 const mopAttached = computed(() => props.attributes.some(attribute => attribute.__class === RobotAttributeClass.AttachmentState && attribute.type === "mop" && attribute.attached));
@@ -25,43 +17,37 @@ const dockStateKnown = computed(() => !props.capabilities.some(capability => [Ca
 const canEmpty = computed(() => dockStateKnown.value && robotState.value === "docked" && ["idle", "pause"].includes(dockState.value));
 const canClean = computed(() => dockStateKnown.value && robotState.value === "docked" && mopAttached.value && ["idle", "cleaning", "pause"].includes(dockState.value));
 const canDry = computed(() => dockStateKnown.value && robotState.value === "docked" && mopAttached.value && ["idle", "drying", "pause"].includes(dockState.value));
-const options = useQuery({
-    queryKey: ["homePresetOptions", visiblePresets],
-    queryFn: async () => Object.fromEntries(await Promise.all(visiblePresets.value.map(async control => [control.type, (await fetchPresetSelections(control.capability)).filter(value => value !== "custom")]))),
-    enabled: computed(() => visiblePresets.value.length > 0)
-});
-const currentStats = useQuery({queryKey: ["currentStatistics"], queryFn: fetchCurrentStatistics, enabled: computed(() => props.capabilities.includes(Capability.CurrentStatistics))});
-const presetMutation = useMutation({
-    mutationFn: ({capability, value}: {capability: Capability.FanSpeedControl | Capability.WaterUsageControl | Capability.OperationModeControl; value: PresetSelectionState["value"]}) => updatePresetSelection(capability, value),
-    onSuccess: () => queryClient.invalidateQueries({queryKey: ["robotAttributes"]})
-});
+const hasTotalStatistics = computed(() => props.capabilities.includes(Capability.TotalStatistics));
+const showCurrentStatistics = computed(() => !hasTotalStatistics.value && props.capabilities.includes(Capability.CurrentStatistics) && robotState.value !== undefined && !["idle", "docked"].includes(robotState.value));
+const showStatistics = computed(() => hasTotalStatistics.value || showCurrentStatistics.value);
+const totalStats = useQuery({queryKey: ["totalStatistics"], queryFn: fetchTotalStatistics, enabled: hasTotalStatistics});
+const currentStats = useQuery({queryKey: ["currentStatistics"], queryFn: fetchCurrentStatistics, enabled: showCurrentStatistics});
+const statistics = computed(() => [...(hasTotalStatistics.value ? totalStats.data.value ?? [] : currentStats.data.value ?? [])].sort((a, b) => ({time: 0, area: 1, count: 2}[a.type] - {time: 0, area: 1, count: 2}[b.type])));
+const statisticsPending = computed(() => hasTotalStatistics.value ? totalStats.isPending.value : currentStats.isPending.value);
+const statisticsError = computed(() => hasTotalStatistics.value ? totalStats.isError.value : currentStats.isError.value);
 const dockMutation = useMutation({mutationFn: async (action: "empty" | "clean" | "dry" | "stop_clean" | "stop_dry") => {
     if (action === "empty") return sendAutoEmptyDockManualTriggerCommand();
     if (action === "clean" || action === "stop_clean") return sendMopDockCleanManualTriggerCommand(action === "clean" ? "start" : "stop");
     return sendMopDockDryManualTriggerCommand(action === "dry" ? "start" : "stop");
 }});
 
-function selected(type: PresetSelectionState["type"]) {
-    return (props.attributes.find(attribute => attribute.__class === RobotAttributeClass.PresetSelectionState && attribute.type === type) as PresetSelectionState | undefined)?.value;
-}
-
-function statValue(type: string, value: number) {
-    if (type === "area") return `${(value / 10000).toFixed(2)} m²`;
-    if (type === "time") return `${Math.round(value / 60)} min`;
-    return String(value);
+function statLabel(type: ValetudoDataPoint["type"]): string {
+    return {time: translate("Cleaning time"), area: translate("Cleaned area"), count: translate("Cleanups")}[type];
 }
 </script>
 
 <template>
-    <section v-if="visiblePresets.length || capabilities.includes(Capability.CurrentStatistics) || capabilities.some(capability => [Capability.AutoEmptyDockManualTrigger, Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability))" class="panel md:col-span-2">
-        <h2 class="mb-4 text-xl font-semibold">{{ $t("Robot controls") }}</h2>
-        <div v-for="control in visiblePresets" :key="control.type" class="mb-4 flex flex-wrap items-center justify-between gap-3"><label :for="control.type">{{ control.label }}</label><Select :id="control.type" :model-value="selected(control.type)" :options="(options.data.value?.[control.type] ?? []).map((value: string) => ({label: valueLabel(value), value}))" option-label="label" option-value="value" :disabled="options.isPending.value || presetMutation.isPending.value" @update:model-value="value => presetMutation.mutate({capability: control.capability, value})" /></div>
-        <div class="flex flex-wrap gap-2">
+    <div v-if="showStatistics || capabilities.some(capability => [Capability.AutoEmptyDockManualTrigger, Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability))" class="home-details">
+        <template v-if="showStatistics">
+            <span class="page-header-kicker">{{ hasTotalStatistics ? $t("Total statistics") : $t("Current statistics") }}</span>
+            <div class="home-current-stats"><div v-for="stat in statistics" :key="stat.type"><strong>{{ formatStatisticsValue(stat) }}</strong><small>{{ statLabel(stat.type) }}</small></div><p v-if="statisticsPending" class="muted text-xs">{{ $t("Loading…") }}</p></div>
+            <Message v-if="statisticsError" severity="error" class="mt-3">{{ hasTotalStatistics ? $t("Unable to load total statistics.") : $t("A robot control request failed.") }}</Message>
+        </template>
+        <div class="flex flex-wrap gap-2" :class="{'mt-4': showStatistics}">
             <Button v-if="capabilities.includes(Capability.AutoEmptyDockManualTrigger)" :label='$t("Empty dustbin")' outlined :disabled="dockMutation.isPending.value || !canEmpty" @click="dockMutation.mutate('empty')" />
             <Button v-if="capabilities.includes(Capability.MopDockCleanManualTrigger)" :label="dockState === 'cleaning' ? $t('Stop mop cleaning') : $t('Clean mop')" outlined :disabled="dockMutation.isPending.value || !canClean" @click="dockMutation.mutate(dockState === 'cleaning' ? 'stop_clean' : 'clean')" />
             <Button v-if="capabilities.includes(Capability.MopDockDryManualTrigger)" :label="dockState === 'drying' ? $t('Stop mop drying') : $t('Dry mop')" outlined :disabled="dockMutation.isPending.value || !canDry" @click="dockMutation.mutate(dockState === 'drying' ? 'stop_dry' : 'dry')" />
         </div>
-        <div v-if="capabilities.includes(Capability.CurrentStatistics)" class="mt-5"><h3 class="mb-2 font-semibold">{{ $t("Current statistics") }}</h3><p v-if="currentStats.isPending.value" role="status">{{ $t("Loading…") }}</p><div v-else class="flex flex-wrap gap-5"><p v-for="stat in currentStats.data.value" :key="stat.type">{{ valueLabel(stat.type) }}: {{ statValue(stat.type, stat.value) }}</p></div></div>
-        <Message v-if="options.isError.value || presetMutation.isError.value || dockMutation.isError.value || currentStats.isError.value" severity="error" class="mt-4">{{ $t("A robot control request failed.") }}</Message>
-    </section>
+        <Message v-if="dockMutation.isError.value" severity="error" class="mt-4">{{ $t("A robot control request failed.") }}</Message>
+    </div>
 </template>

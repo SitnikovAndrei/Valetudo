@@ -200,20 +200,20 @@ export const fetchCapabilities = (): Promise<Capability[]> => {
         });
 };
 
-export const fetchMap = (): Promise<RawMapData> => {
-    return valetudoAPI.get<RawMapData>("/robot/state/map").then(({data}) => {
-        return preprocessMap(data);
+export const fetchMap = (): Promise<RawMapData | null> => {
+    return valetudoAPI.get<RawMapData | null>("/robot/state/map").then(({data}) => {
+        return data ? preprocessMap(data) : null;
     });
 };
 
 export const subscribeToMap = (
-    listener: (data: RawMapData) => void
+    listener: (data: RawMapData | null) => void
 ): (() => void) => {
     return subscribeToSSE(
         "/robot/state/map/sse",
         "MapUpdated",
-        (data: RawMapData) => {
-            listener(preprocessMap(data));
+        (data: RawMapData | null) => {
+            listener(data ? preprocessMap(data) : null);
         });
 };
 

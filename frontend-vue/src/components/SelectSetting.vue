@@ -4,6 +4,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Select from "primevue/select";
 import Message from "primevue/message";
 import {valueLabel} from "../i18n/labels";
+import SettingRow from "./SettingRow.vue";
 
 const props = defineProps<{
     name: string;
@@ -21,8 +22,8 @@ const choices = computed(() => (options.data.value ?? []).map(option => ({label:
 </script>
 
 <template>
-    <div class="border-b py-4" style="border-color: var(--app-border)">
-        <label class="flex flex-wrap items-center justify-between gap-4"><span><span class="block font-semibold">{{ name }}</span><span v-if="description" class="muted text-sm">{{ description }}</span></span><Select :model-value="value.data.value" :options="choices" option-label="label" option-value="value" :aria-label="name" :disabled="value.isPending.value || options.isPending.value || value.isError.value || options.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(String($event))" /></label>
+    <SettingRow :name="name" :description="description">
+        <Select :model-value="value.data.value" :options="choices" option-label="label" option-value="value" :aria-label="name" :disabled="value.isPending.value || options.isPending.value || value.isError.value || options.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(String($event))" />
         <Message v-if="value.isError.value || options.isError.value || mutation.isError.value" severity="error" class="mt-2">{{ $t("Unable to load or update {name}.", {name}) }}</Message>
-    </div>
+    </SettingRow>
 </template>

@@ -11,10 +11,12 @@
     "ts-check": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "axios": "1.13.2",
+    "@fontsource/dm-sans": "5.2.8",
+    "@fontsource/manrope": "5.2.8",
     "@primeuix/themes": "2.0.1",
     "@tanstack/vue-query": "5.103.2",
     "@types/markdown-it": "^14.2.0",
+    "axios": "1.13.2",
     "markdown-it": "^14.1.1",
     "primevue": "4.4.1",
     "reconnecting-eventsource": "1.6.4",

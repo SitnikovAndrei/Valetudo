@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import {computed, ref} from "vue";
+import {computed} from "vue";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
-import Dialog from "primevue/dialog";
 import Message from "primevue/message";
 import {Capability} from "../api/types";
 import {fetchRobotInformation, fetchStateAttributes, sendBasicControlCommand, type BasicControlCommand} from "../api/client";
@@ -10,13 +9,15 @@ import {useRobotAttributes} from "../composables/useRobotAttributes";
 import {isBasicCommandEnabled} from "../basicControl";
 import LiveMapPanel from "../components/LiveMapPanel.vue";
 import HomeDetails from "../components/HomeDetails.vue";
+import HomeCommandIcon from "../components/HomeCommandIcon.vue";
+import PresetSettings from "../components/PresetSettings.vue";
+import PageHeader from "../components/PageHeader.vue";
 import {valueLabel} from "../i18n/labels";
 
 const props = defineProps<{capabilities: Capability[]; paletteMode: "light" | "dark"}>();
 const robot = useQuery({queryKey: ["robotInformation"], queryFn: fetchRobotInformation, retry: 1});
 const {query: attributes, status, batteries, queryKey} = useRobotAttributes();
 const queryClient = useQueryClient();
-const basicControlSupported = computed(() => props.capabilities.includes(Capability.BasicControl));
 const command = useMutation({
     mutationFn: async (action: BasicControlCommand) => {
         await sendBasicControlCommand(action);
@@ -25,74 +26,55 @@ const command = useMutation({
     onSuccess: data => queryClient.setQueryData(queryKey, data)
 });
 const actions: BasicControlCommand[] = ["start", "pause", "stop", "home"];
-const primaryAction = computed<BasicControlCommand | undefined>(() => actions.find(action => action !== "home" && isBasicCommandEnabled(action, status.value)));
-const pendingMapAction = ref(false);
-const confirmFullCleanup = ref(false);
+const hasPresets = computed(() => props.capabilities.some(capability => [Capability.FanSpeedControl, Capability.WaterUsageControl, Capability.OperationModeControl].includes(capability)));
 
 function send(action: BasicControlCommand) {
-    if (!basicControlSupported.value || !isBasicCommandEnabled(action, status.value) || command.isPending.value) return;
-    if (action === "start" && pendingMapAction.value) {
-        confirmFullCleanup.value = true;
-        return;
-    }
+    if (!isBasicCommandEnabled(action, status.value) || command.isPending.value || attributes.isError.value) return;
     command.mutate(action);
 }
-
-function startConfirmed() {
-    confirmFullCleanup.value = false;
-    if (isBasicCommandEnabled("start", status.value) && !command.isPending.value) command.mutate("start");
+function label(action: BasicControlCommand) {
+    if (action === "start") return status.value?.flag === "resumable" ? "Resume" : "Start cleaning";
+    if (action === "home") return "Dock";
+    return action === "pause" ? "Pause" : "Stop action";
 }
 </script>
 
 <template>
-    <section class="grid gap-5 pb-20 md:grid-cols-2 md:pb-0">
-        <div class="panel md:col-span-2">
-            <p class="muted mb-2 text-sm uppercase tracking-wider">{{ $t("Robot") }}</p>
-            <p v-if="robot.isPending.value" role="status">{{ $t("Loading robot information…") }}</p>
-            <p v-else-if="robot.isError.value" role="alert">{{ $t("Robot information is unavailable.") }}</p>
-            <template v-else>
-                <h1 class="text-3xl font-bold">{{ robot.data.value?.modelName }}</h1>
-                <p class="muted mt-2">{{ robot.data.value?.manufacturer }}</p>
+    <div class="home-page">
+        <PageHeader :title='$t("Map and controls")' :subtitle='$t("Choose an area and an action for the current state.")' :kicker='$t("Robot vacuum")' />
+        <LiveMapPanel :capabilities="capabilities" :palette-mode="paletteMode" :status="status">
+            <template #action-status>
+                <span class="home-status-dot" :class="status?.value" aria-hidden="true" /><strong>{{ status ? valueLabel(status.value) : $t('Loading…') }}</strong><span>{{ robot.data.value?.modelName }}<template v-if="batteries.length"> · {{ Math.round(batteries[0].level) }}%</template></span>
             </template>
-        </div>
-        <LiveMapPanel class="md:col-span-2" :capabilities="capabilities" :palette-mode="paletteMode"
-            :status="status" @pending-change="value => pendingMapAction = value" />
-        <HomeDetails :capabilities="capabilities" :attributes="attributes.data.value ?? []" />
-        <div class="panel md:col-span-2">
-            <h2 class="mb-4 text-xl font-semibold">{{ $t("Current state") }}</h2>
-            <p v-if="attributes.isPending.value" role="status">{{ $t("Loading robot state…") }}</p>
-            <Message v-else-if="attributes.isError.value" severity="error">{{ $t("Unable to load robot state.") }}</Message>
-            <template v-else>
-                <p v-if="status">{{ valueLabel(status.value) }}<span v-if="status.flag !== 'none'"> · {{ valueLabel(status.flag) }}</span></p>
-                <p v-else class="muted">{{ $t("No status reported.") }}</p>
-                <div v-if="batteries.length" class="mt-3 flex flex-wrap gap-4">
-                    <p v-for="(battery, index) in batteries" :key="index">
-                        {{ $t("Battery") }}{{ batteries.length > 1 ? ` ${index + 1}` : "" }}: {{ Math.round(battery.level) }}%
-                    </p>
+            <template #status>
+                <div class="home-status-heading"><span class="page-header-kicker">{{ $t("Device") }}</span><span v-if="status" class="home-status-pill" :class="status.value">{{ valueLabel(status.value) }}</span></div>
+                <div class="home-robot-hero"><span class="home-robot-avatar" aria-hidden="true" /><div><p v-if="robot.isPending.value" role="status" class="muted text-sm">{{ $t("Loading robot information…") }}</p><p v-else-if="robot.isError.value" role="alert" class="muted text-sm">{{ $t("Robot information is unavailable.") }}</p><h2 v-else>{{ robot.data.value?.modelName }}</h2><p class="muted home-robot-manufacturer">{{ robot.data.value?.manufacturer }}</p><p v-if="status" class="muted home-robot-state">{{ valueLabel(status.value) }}</p></div></div>
+                <div v-if="attributes.isPending.value" class="muted mt-3 text-sm" role="status">{{ $t("Loading robot state…") }}</div>
+                <Message v-else-if="attributes.isError.value" severity="error" class="mt-3">{{ $t("Unable to load robot state.") }}</Message>
+                <div v-else class="home-robot-stats">
+                    <div v-for="(battery, index) in batteries" :key="index"><strong>{{ Math.round(battery.level) }}%</strong><small>{{ $t("Battery") }}{{ batteries.length > 1 ? ` ${index + 1}` : "" }}</small></div>
+                    <div v-if="status?.flag && status.flag !== 'none'"><strong>{{ valueLabel(status.flag) }}</strong><small>{{ $t("Status") }}</small></div>
                 </div>
+                <HomeDetails :capabilities="capabilities" :attributes="attributes.data.value ?? []" />
             </template>
-            <template v-if="basicControlSupported">
-                <div class="mt-5 hidden flex-wrap gap-2 md:flex">
-                    <Button v-for="action in actions" :key="action"
-                        :label="action === 'start' && status?.flag === 'resumable' ? $t('Resume') : action === 'home' ? $t('Dock') : action === 'start' ? $t('Start full cleanup') : $t(action === 'pause' ? 'Pause' : 'Stop')"
-                        :disabled="!isBasicCommandEnabled(action, status) || attributes.isError.value || command.isPending.value"
-                        :loading="command.isPending.value && command.variables.value === action"
-                        outlined @click="send(action)" />
-                </div>
-                <Message v-if="command.isError.value" severity="error" class="mt-4">{{ $t("Command failed. Check the robot state and try again.") }}</Message>
+            <template #actions="{mode}">
+                <template v-if="capabilities.includes(Capability.BasicControl)">
+                    <Button v-if="mode === 'all'" :label="$t(label('start'))" :disabled="!isBasicCommandEnabled('start', status) || attributes.isError.value || command.isPending.value" :loading="command.isPending.value && command.variables.value === 'start'" @click="send('start')"><template #icon><HomeCommandIcon action="start" /></template></Button>
+                    <div class="home-command-secondary">
+                        <Button v-for="action in actions.filter(item => item !== 'start')" :key="action" :label="$t(label(action))" outlined :severity="action === 'stop' ? 'danger' : undefined" :disabled="!isBasicCommandEnabled(action, status) || attributes.isError.value || command.isPending.value" :loading="command.isPending.value && command.variables.value === action" @click="send(action)"><template #icon><HomeCommandIcon :action="action" /></template></Button>
+                    </div>
+                    <Message v-if="command.isError.value" severity="error">{{ $t("Command failed. Check the robot state and try again.") }}</Message>
+                </template>
             </template>
-        </div>
-        <div v-if="basicControlSupported" class="fixed inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t p-3 pb-[max(.75rem,env(safe-area-inset-bottom))] shadow-lg md:hidden" style="background: var(--app-surface); border-color: var(--app-border)">
-            <Button v-if="primaryAction" class="flex-1" :label="primaryAction === 'start' && status?.flag === 'resumable' ? $t('Resume') : primaryAction === 'start' ? $t('Start full cleanup') : primaryAction === 'pause' ? $t('Pause') : $t('Stop')" :disabled="attributes.isError.value || command.isPending.value" :loading="command.isPending.value && command.variables.value === primaryAction" @click="send(primaryAction)" />
-            <Button v-if="primaryAction !== 'stop' && isBasicCommandEnabled('stop', status)" :label='$t("Stop")' severity="danger" outlined :disabled="attributes.isError.value || command.isPending.value" :loading="command.isPending.value && command.variables.value === 'stop'" @click="send('stop')" />
-            <Button :label='$t("Dock")' outlined :disabled="!isBasicCommandEnabled('home', status) || attributes.isError.value || command.isPending.value" @click="send('home')" />
-        </div>
-        <Dialog v-model:visible="confirmFullCleanup" modal :header='$t("Start full cleanup?")' class="max-w-md">
-            <p>{{ $t("You have a selected action on the map. Starting a full cleanup will ignore that selection.") }}</p>
-            <div class="mt-5 flex justify-end gap-2">
-                <Button :label='$t("Cancel")' text @click="confirmFullCleanup = false" />
-                <Button :label='$t("Start full cleanup")' @click="startConfirmed" />
-            </div>
-        </Dialog>
-    </section>
+            <template #mobile-actions="{mode}">
+                <template v-if="capabilities.includes(Capability.BasicControl)">
+                    <Button v-if="mode === 'all'" :label="$t(label('start'))" :disabled="!isBasicCommandEnabled('start', status) || attributes.isError.value || command.isPending.value" :loading="command.isPending.value && command.variables.value === 'start'" @click="send('start')"><template #icon><HomeCommandIcon action="start" /></template></Button>
+                    <div class="home-mobile-secondary">
+                        <Button v-for="action in actions.filter(item => item !== 'start')" :key="action" :label="$t(label(action))" outlined :severity="action === 'stop' ? 'danger' : undefined" :disabled="!isBasicCommandEnabled(action, status) || attributes.isError.value || command.isPending.value" :loading="command.isPending.value && command.variables.value === action" @click="send(action)"><template #icon><HomeCommandIcon :action="action" /></template></Button>
+                    </div>
+                </template>
+            </template>
+            <template #presets><PresetSettings v-if="hasPresets" :capabilities="capabilities" :attributes="attributes.data.value ?? []" compact /></template>
+        </LiveMapPanel>
+    </div>
 </template>
