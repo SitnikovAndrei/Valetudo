@@ -267,7 +267,7 @@ function zoomOut() {
     draw();
 }
 
-defineExpose({zoomIn, zoomOut, fitMap: () => {fitMap(); draw();}});
+defineExpose({zoomIn, zoomOut, fitMap: () => {resize(); fitMap(); draw();}});
 
 function onKeyDown(event: KeyboardEvent) {
     const element = canvas.value;

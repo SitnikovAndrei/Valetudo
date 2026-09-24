@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref, watch} from "vue";
+import {computed, nextTick, onBeforeUnmount, ref, watch} from "vue";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
@@ -29,6 +29,7 @@ const emit = defineEmits<{"pending-change": [pending: boolean]}>();
 const queryClient = useQueryClient();
 const map = useRobotMap();
 const mapCanvas = ref<InstanceType<typeof MapCanvas>>();
+const mapExpanded = ref(false);
 const modes = computed<Mode[]>(() => [
     "all",
     ...(props.capabilities.includes(Capability.MapSegmentation) ? ["segments" as const] : []),
@@ -116,6 +117,12 @@ watch([map.isPending, map.data], ([loading, data]) => {
 watch([minIterations, maxIterations], () => {
     iterations.value = Math.max(minIterations.value, Math.min(maxIterations.value, iterations.value));
 });
+watch(mapExpanded, async expanded => {
+    document.body.classList.toggle("home-map-expanded", expanded);
+    await nextTick();
+    window.requestAnimationFrame(() => mapCanvas.value?.fitMap());
+});
+onBeforeUnmount(() => document.body.classList.remove("home-map-expanded"));
 
 function clear() {
     selectedSegmentIds.value = [];
@@ -185,8 +192,8 @@ function execute() {
 
 <template>
     <section class="home-dashboard">
-        <div class="panel home-map">
-            <div class="home-map-heading"><div><span class="page-header-kicker">{{ $t("Robot map") }}</span><h2>{{ $t("Floor plan") }}</h2></div><span v-if="map.data.value && modes.length > 1" class="home-map-capability">{{ $t("Rooms and zones available") }}</span></div>
+        <div class="panel home-map" :class="{'home-map--expanded': mapExpanded}" @keydown.esc="mapExpanded = false">
+            <div class="home-map-heading"><div><span class="page-header-kicker">{{ $t("Robot map") }}</span><h2>{{ $t("Floor plan") }}</h2></div><span v-if="map.data.value && modes.length > 1" class="home-map-capability">{{ $t("Rooms and zones available") }}</span><button v-if="map.data.value" class="home-map-expand" type="button" :aria-label="mapExpanded ? $t('Close') : $t('Fullscreen')" :title="mapExpanded ? $t('Close') : $t('Fullscreen')" :aria-pressed="mapExpanded" @click="mapExpanded = !mapExpanded"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-if="mapExpanded" d="M5 5 19 19M19 5 5 19" /><path v-else d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" /></svg></button></div>
             <div v-if="map.isPending.value" class="async-state" role="status">{{ $t("Loading map…") }}</div>
             <div v-else-if="map.isError.value" class="async-state"><Message severity="error">{{ $t("Unable to load map data.") }}</Message><Button :label='$t("Retry")' outlined @click="map.refetch()" /></div>
             <div v-else-if="!map.data.value" class="async-state">{{ $t("No map data reported.") }}</div>
