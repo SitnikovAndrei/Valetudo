@@ -67,7 +67,7 @@ watch([() => router.currentRoute.value.path, language], ([path, value]) => {
         "/options/map_management": translate("Map options"), "/options/map_management/segments": translate("Segment management"), "/options/map_management/virtual_restrictions": translate("Virtual restrictions"),
         "/options/map_management/annotations": translate("Map annotations"), "/options/map_management/spectator": translate("Spectator map"), "/options/map_management/robot_coverage": translate("Robot coverage map"),
         "/options/robot": translate("Robot options"), "/options/robot/system": translate("Robot system options"), "/options/robot/quirks": translate("Quirks"),
-        "/options/valetudo": translate("Valetudo options"), "/options/valetudo/analytics": translate("Analytics"), "/valetudo/timers": translate("Timers"),
+        "/options/valetudo": translate("Valetudo options"), "/valetudo/timers": translate("Timers"),
         "/valetudo/log": translate("Log"), "/valetudo/system_information": translate("System information"), "/setup": translate("Wi-Fi connectivity")
     };
     document.title = path === "/" ? "Valetudo" : `Valetudo - ${titles[path] ?? "Valetudo"}`;

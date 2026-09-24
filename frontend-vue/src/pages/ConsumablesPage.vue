@@ -8,6 +8,8 @@ import Message from "primevue/message";
 import ProgressBar from "primevue/progressbar";
 import {fetchConsumableProperties, fetchConsumableStateInformation, sendConsumableReset} from "../../../frontend/src/api/client";
 import type {ConsumableMeta} from "../../../frontend/src/api/types";
+import {formatMinutes} from "../formatDuration";
+import {i18n} from "../i18n";
 
 const properties = useQuery({queryKey: ["consumableProperties"], queryFn: fetchConsumableProperties});
 const states = useQuery({queryKey: ["consumableStates"], queryFn: fetchConsumableStateInformation});
@@ -29,6 +31,12 @@ function remaining(consumable: ConsumableMeta) {
     return states.data.value?.find(state => state.type === consumable.type && state.subType === consumable.subType)?.remaining;
 }
 
+function remainingLabel(consumable: ConsumableMeta): string {
+    const state = remaining(consumable);
+    if (!state) return "";
+    return state.unit === "minutes" ? formatMinutes(state.value, i18n.global.locale.value) : `${state.value} ${valueLabel(state.unit)}`;
+}
+
 function percentage(consumable: ConsumableMeta) {
     const value = remaining(consumable)?.value;
     if (value === undefined) return undefined;
@@ -48,7 +56,7 @@ function percentage(consumable: ConsumableMeta) {
             <div class="flex items-center justify-between gap-4">
                 <div class="min-w-0 flex-1">
                     <h2 class="font-semibold">{{ name(consumable) }}</h2>
-                    <p v-if="remaining(consumable)" class="muted text-sm">{{ remaining(consumable)?.value }} {{ valueLabel(remaining(consumable)?.unit) }}</p>
+                    <p v-if="remaining(consumable)" class="muted text-sm">{{ remainingLabel(consumable) }}</p>
                     <ProgressBar v-if="percentage(consumable) !== undefined" :value="percentage(consumable)" :show-value="false" class="mt-2" />
                 </div>
                 <Button :label='$t("Reset")' outlined :disabled="reset.isPending.value" @click="selected = consumable" />

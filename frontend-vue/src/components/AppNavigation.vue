@@ -26,8 +26,8 @@ const groups = computed(() => [
         {label: translate("Robot"), to: "/options/robot"},
         {label: translate("Connectivity"), to: "/options/connectivity"},
     ]},
-    {title: "Valetudo", links: [
-        {label: translate("Options"), to: "/options/valetudo"},
+    {title: translate("Miscellaneous"), links: [
+        {label: translate("Valetudo"), to: "/options/valetudo"},
         {label: translate("Timers"), to: "/valetudo/timers"},
         {label: translate("Log"), to: "/valetudo/log"},
         {label: translate("System information"), to: "/valetudo/system_information"}

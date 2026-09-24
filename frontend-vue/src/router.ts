@@ -31,7 +31,6 @@ export default createRouter({
         {path: "/options/map_management/annotations", component: () => import("./pages/MapAnnotationsPage.vue")},
         {path: "/options/map_management/segments", component: () => import("./pages/SegmentsPage.vue")},
         {path: "/options/map_management/robot_coverage", component: () => import("./pages/RobotCoveragePage.vue")},
-        {path: "/options/valetudo/analytics", component: () => import("./pages/AnalyticsPage.vue")},
         {path: "/:pathMatch(.*)*", redirect: "/"}
     ]
 });
