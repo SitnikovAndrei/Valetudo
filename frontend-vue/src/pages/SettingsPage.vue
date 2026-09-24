@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import {computed} from "vue";
+import {computed, inject} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import {Capability} from "../api/types";
 import {fetchDuststreamingConfiguration} from "../api/client";
 import {useQuery} from "@tanstack/vue-query";
+import Select from "primevue/select";
 import {useRobotAttributes} from "../composables/useRobotAttributes";
 import {translate} from "../i18n";
 import PageHeader from "../components/PageHeader.vue";
@@ -12,12 +13,15 @@ import SettingRow from "../components/SettingRow.vue";
 import AsyncState from "../components/AsyncState.vue";
 import PresetSettings from "../components/PresetSettings.vue";
 import DoNotDisturbSettings from "../components/DoNotDisturbSettings.vue";
+import {appPreferencesKey, type ThemeChoice} from "../appPreferences";
+import type {Language} from "../i18n";
 
 type Category = "cleaning" | "map" | "connectivity" | "robot" | "valetudo";
 type Link = {label: string; to: string; capability?: Capability; anyCapability?: Capability[]};
 const props = defineProps<{capabilities: Capability[]}>();
 const route = useRoute();
 const router = useRouter();
+const preferences = inject(appPreferencesKey);
 const {query: attributes} = useRobotAttributes();
 const duststream = useQuery({queryKey: ["duststreamConfiguration"], queryFn: fetchDuststreamingConfiguration, enabled: computed(() => props.capabilities.includes(Capability.Duststreaming))});
 const categories = computed<{key: Category; label: string}[]>(() => [
@@ -47,6 +51,8 @@ const links = computed<Record<Exclude<Category, "cleaning">, Link[]>>(() => ({
     ],
     robot: [
         {label: translate("Robot options"), to: "/options/robot"},
+        {label: translate("Statistics"), to: "/robot/total_statistics", capability: Capability.TotalStatistics},
+        {label: translate("Consumables"), to: "/robot/consumables", capability: Capability.ConsumableMonitoring},
         ...(props.capabilities.includes(Capability.ManualControl) || props.capabilities.includes(Capability.HighResolutionManualControl) ? [{label: translate("Manual control"), to: "/robot/manual_control"}] : []),
         ...(props.capabilities.includes(Capability.Duststreaming) && duststream.data.value?.enabled ? [{label: translate("Camera"), to: "/robot/camera"}] : []),
         {label: translate("System options"), to: "/options/robot/system", anyCapability: systemOptions},
@@ -86,6 +92,10 @@ function select(category: Category) {void router.replace({path: "/options", quer
                     <div class="settings-link-grid">
                         <RouterLink v-for="link in links[active].filter(item => (!item.capability || capabilities.includes(item.capability)) && (!item.anyCapability || item.anyCapability.some(capability => capabilities.includes(capability))))" :key="link.to" class="nav-card" :to="link.to"><strong>{{ link.label }}</strong><span class="muted">→</span></RouterLink>
                     </div>
+                </SettingsSection>
+                <SettingsSection v-if="active === 'valetudo' && preferences" class="settings-mobile-preferences" :title='$t("Preferences")'>
+                    <SettingRow :name='$t("Language")'><Select :model-value="preferences.language.value" :options="[{label: 'Русский', value: 'ru'}, {label: 'English', value: 'en'}]" option-label="label" option-value="value" :aria-label='$t("Language")' @update:model-value="preferences.setLanguage($event as Language)" /></SettingRow>
+                    <SettingRow :name='$t("Theme")'><Select :model-value="preferences.themeChoice.value" :options="[{label: $t('System'), value: 'system'}, {label: $t('Light'), value: 'light'}, {label: $t('Dark'), value: 'dark'}]" option-label="label" option-value="value" :aria-label='$t("Theme")' @update:model-value="preferences.setTheme($event as ThemeChoice)" /></SettingRow>
                 </SettingsSection>
             </div>
         </div>

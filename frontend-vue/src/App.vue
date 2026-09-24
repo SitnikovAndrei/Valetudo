@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onBeforeUnmount, ref, watch} from "vue";
+import {computed, onBeforeUnmount, provide, ref, watch} from "vue";
 import {useQuery} from "@tanstack/vue-query";
 import {useRouter} from "vue-router";
 import Button from "primevue/button";
@@ -13,6 +13,7 @@ import Select from "primevue/select";
 import {usePrimeVue} from "@primevue/core/config";
 import {i18n, setLanguage, translate, type Language} from "./i18n";
 import {primeLocale} from "./i18n/prime";
+import {appPreferencesKey, type ThemeChoice} from "./appPreferences";
 
 type PaletteMode = "light" | "dark";
 
@@ -124,11 +125,13 @@ const onSystemThemeChange = (event: MediaQueryListEvent) => {
 media.addEventListener("change", onSystemThemeChange);
 onBeforeUnmount(() => media.removeEventListener("change", onSystemThemeChange));
 
-function setTheme(value: "system" | PaletteMode) {
+function setTheme(value: ThemeChoice) {
     usingSystemTheme.value = value === "system";
     if (value === "system") {localStorage.removeItem("palette-mode"); paletteMode.value = media.matches ? "dark" : "light";}
     else {paletteMode.value = value; localStorage.setItem("palette-mode", value);}
 }
+
+provide(appPreferencesKey, {language, themeChoice, setLanguage, setTheme});
 
 function retry() {
     if (capabilities.isError.value) void capabilities.refetch();
@@ -162,15 +165,7 @@ function retry() {
             <RouterView v-else :capabilities="capabilities.data.value ?? []" :information="information.data.value" :palette-mode="paletteMode" />
         </main>
         </div>
-        <AppNavigation v-if="!loading && !failed && router.currentRoute.value.path !== '/setup'" variant="mobile" :capabilities="capabilities.data.value ?? []">
-            <template #preferences>
-                <div class="border-t pt-4" style="border-color: var(--app-border)">
-                    <p class="app-nav-title">{{ $t("Preferences") }}</p>
-                    <label class="mb-3 flex items-center justify-between gap-2">{{ $t("Language") }}<Select :model-value="language" :options="[{label: 'Русский', value: 'ru'}, {label: 'English', value: 'en'}]" option-label="label" option-value="value" @update:model-value="setLanguage($event as Language)" /></label>
-                    <label class="flex items-center justify-between gap-2">{{ $t("Theme") }}<Select :model-value="themeChoice" :options="[{label: $t('System'), value: 'system'}, {label: $t('Light'), value: 'light'}, {label: $t('Dark'), value: 'dark'}]" option-label="label" option-value="value" @update:model-value="setTheme" /></label>
-                </div>
-            </template>
-        </AppNavigation>
+        <AppNavigation v-if="!loading && !failed && router.currentRoute.value.path !== '/setup'" variant="mobile" :capabilities="capabilities.data.value ?? []" />
         <WelcomeDialog v-if="!loading && !failed && router.currentRoute.value.path !== '/setup' && information.data.value" :capabilities="capabilities.data.value ?? []" :information="information.data.value" />
     </div>
 </template>
