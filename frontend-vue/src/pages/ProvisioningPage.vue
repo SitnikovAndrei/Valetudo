@@ -5,8 +5,8 @@ import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import Message from "primevue/message";
-import {Capability, type ValetudoInformation} from "../../../frontend/src/api/types";
-import {fetchWifiScan, sendWifiConfiguration} from "../../../frontend/src/api/client";
+import {Capability, type ValetudoInformation} from "../api/types";
+import {fetchWifiScan, sendWifiConfiguration} from "../api/client";
 
 const props = defineProps<{capabilities: Capability[]; information: ValetudoInformation}>();
 const ssid = ref("");

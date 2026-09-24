@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import type {RawMapData} from "../../../frontend/src/api/RawMapData";
+import type {RawMapData} from "../api/RawMapData";
 import {MapViewport} from "./MapViewport";
 
 const map = {

@@ -1,4 +1,4 @@
-import type {RawMapData} from "../../../frontend/src/api/RawMapData";
+import type {RawMapData} from "../api/RawMapData";
 
 export type Point = {x: number; y: number};
 

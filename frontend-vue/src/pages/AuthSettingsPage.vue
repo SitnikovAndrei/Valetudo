@@ -6,8 +6,8 @@ import Checkbox from "primevue/checkbox";
 import InputText from "primevue/inputtext";
 import Message from "primevue/message";
 import Password from "primevue/password";
-import {fetchHTTPBasicAuthConfiguration, sendHTTPBasicAuthConfiguration} from "../../../frontend/src/api/client";
-import type {HTTPBasicAuthConfiguration} from "../../../frontend/src/api/types";
+import {fetchHTTPBasicAuthConfiguration, sendHTTPBasicAuthConfiguration} from "../api/client";
+import type {HTTPBasicAuthConfiguration} from "../api/types";
 
 const queryClient = useQueryClient();
 const config = useQuery({queryKey: ["httpAuth"], queryFn: fetchHTTPBasicAuthConfiguration});

@@ -6,8 +6,8 @@ import Checkbox from "primevue/checkbox";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
 import Message from "primevue/message";
-import {fetchNTPClientConfiguration, fetchNTPClientStatus, sendNTPClientConfiguration} from "../../../frontend/src/api/client";
-import type {NTPClientConfiguration} from "../../../frontend/src/api/types";
+import {fetchNTPClientConfiguration, fetchNTPClientStatus, sendNTPClientConfiguration} from "../api/client";
+import type {NTPClientConfiguration} from "../api/types";
 import {valueLabel} from "../i18n/labels";
 
 const queryClient = useQueryClient();

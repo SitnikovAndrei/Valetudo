@@ -1,6 +1,6 @@
 import {onMounted, onUnmounted} from "vue";
 import {useQuery, useQueryClient} from "@tanstack/vue-query";
-import {fetchMap, subscribeToMap} from "../../../frontend/src/api/client";
+import {fetchMap, subscribeToMap} from "../api/client";
 
 const queryKey = ["robotMap"];
 

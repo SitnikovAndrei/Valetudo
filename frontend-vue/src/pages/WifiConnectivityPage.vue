@@ -6,8 +6,8 @@ import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
 import Message from "primevue/message";
 import Password from "primevue/password";
-import {Capability} from "../../../frontend/src/api/types";
-import {fetchWifiConfigurationProperties, fetchWifiStatus, sendWifiConfiguration} from "../../../frontend/src/api/client";
+import {Capability} from "../api/types";
+import {fetchWifiConfigurationProperties, fetchWifiStatus, sendWifiConfiguration} from "../api/client";
 import {valueLabel} from "../i18n/labels";
 
 const props = defineProps<{capabilities: Capability[]}>();

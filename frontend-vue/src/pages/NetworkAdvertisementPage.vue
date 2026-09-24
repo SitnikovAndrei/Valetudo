@@ -4,7 +4,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import Message from "primevue/message";
-import {fetchNetworkAdvertisementConfiguration, fetchNetworkAdvertisementProperties, sendNetworkAdvertisementConfiguration} from "../../../frontend/src/api/client";
+import {fetchNetworkAdvertisementConfiguration, fetchNetworkAdvertisementProperties, sendNetworkAdvertisementConfiguration} from "../api/client";
 
 const queryClient = useQueryClient();
 const config = useQuery({queryKey: ["networkAdvertisement"], queryFn: fetchNetworkAdvertisementConfiguration});

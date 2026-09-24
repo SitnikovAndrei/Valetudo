@@ -1,4 +1,4 @@
-import {RawMapLayerType, type RawMapLayer} from "../../../frontend/src/api/RawMapData";
+import {RawMapLayerType, type RawMapLayer} from "../api/RawMapData";
 import type {Point} from "./MapViewport";
 
 const labelPositions = new WeakMap<RawMapLayer, Point>();

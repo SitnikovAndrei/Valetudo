@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {computed} from "vue";
 import MarkdownIt from "markdown-it";
-import {AboutText} from "../../../frontend/src/valetudo/res/AboutText";
-import {HelpText} from "../../../frontend/src/valetudo/res/HelpText";
+import {AboutText} from "../valetudo/res/AboutText";
+import {HelpText} from "../valetudo/res/HelpText";
 import {translate} from "../i18n";
 
 const props = defineProps<{page: "about" | "help"}>();

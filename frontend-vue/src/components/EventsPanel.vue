@@ -4,8 +4,8 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Drawer from "primevue/drawer";
 import Message from "primevue/message";
-import {fetchValetudoEvents, sendValetudoEventInteraction} from "../../../frontend/src/api/client";
-import type {ConsumableSubType, ConsumableType, ValetudoEvent, ValetudoEventInteraction} from "../../../frontend/src/api/types";
+import {fetchValetudoEvents, sendValetudoEventInteraction} from "../api/client";
+import type {ConsumableSubType, ConsumableType, ValetudoEvent, ValetudoEventInteraction} from "../api/types";
 import {translate} from "../i18n";
 import {consumableName} from "../i18n/labels";
 

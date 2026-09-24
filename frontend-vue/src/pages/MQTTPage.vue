@@ -9,8 +9,8 @@ import InputText from "primevue/inputtext";
 import Message from "primevue/message";
 import Password from "primevue/password";
 import Textarea from "primevue/textarea";
-import {fetchMQTTConfiguration, fetchMQTTProperties, fetchMQTTStatus, sendMQTTConfiguration} from "../../../frontend/src/api/client";
-import type {MQTTConfiguration} from "../../../frontend/src/api/types";
+import {fetchMQTTConfiguration, fetchMQTTProperties, fetchMQTTStatus, sendMQTTConfiguration} from "../api/client";
+import type {MQTTConfiguration} from "../api/types";
 import {valueLabel} from "../i18n/labels";
 
 const queryClient = useQueryClient();

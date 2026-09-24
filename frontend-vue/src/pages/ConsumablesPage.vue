@@ -6,8 +6,8 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import Message from "primevue/message";
 import ProgressBar from "primevue/progressbar";
-import {fetchConsumableProperties, fetchConsumableStateInformation, sendConsumableReset} from "../../../frontend/src/api/client";
-import type {ConsumableMeta} from "../../../frontend/src/api/types";
+import {fetchConsumableProperties, fetchConsumableStateInformation, sendConsumableReset} from "../api/client";
+import type {ConsumableMeta} from "../api/types";
 import {formatMinutes} from "../formatDuration";
 import {i18n} from "../i18n";
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref} from "vue";
-import logo from "../../../frontend/src/assets/icons/valetudo_splash.svg?url";
+import logo from "../assets/icons/valetudo_splash.svg?url";
 
 const emit = defineEmits<{close: []}>();
 const image = ref<HTMLImageElement>();

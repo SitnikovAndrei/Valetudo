@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {RawMapLayerType, type RawMapData, type RawMapLayer} from "../../../frontend/src/api/RawMapData";
-import {getSegmentAtPoint} from "../../../frontend/src/map/SegmentLookup";
+import {RawMapLayerType, type RawMapData, type RawMapLayer} from "../api/RawMapData";
+import {getSegmentAtPoint} from "./SegmentLookup";
 import {getSegmentLabelAtPoint, getSegmentLabelPoint} from "./SegmentLabelHitTest";
 import {MapViewport} from "./MapViewport";
 

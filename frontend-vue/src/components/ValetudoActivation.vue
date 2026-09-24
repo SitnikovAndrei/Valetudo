@@ -6,9 +6,9 @@ import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
 import Message from "primevue/message";
 import {activate, activated} from "../aprilFools";
-import {XmPlayer} from "../../../frontend/src/util/XmPlayer";
-import musicUrl from "../../../frontend/src/assets/raw/keygen.xm.gz?url";
-import robotUrl from "../../../frontend/src/assets/raw/robot.json.gz?url";
+import {XmPlayer} from "../util/XmPlayer";
+import musicUrl from "../assets/raw/keygen.xm.gz?url";
+import robotUrl from "../assets/raw/robot.json.gz?url";
 
 type Mesh = {v: number[]; e: number[]};
 const keys = new Set(["00000-00000-00000-00000-00000", "FCKGW-RHQQ2-YXRKT-8TG6W-2B7Q8", "J3QQ4-H7H2V-2HCH4-M3HK8-6M8VW"]);

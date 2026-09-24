@@ -2,7 +2,7 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Checkbox from "primevue/checkbox";
 import Message from "primevue/message";
-import type {SimpleToggleState} from "../../../frontend/src/api/types";
+import type {SimpleToggleState} from "../api/types";
 
 const props = defineProps<{name: string; description?: string; queryKey: string; fetchState: () => Promise<SimpleToggleState>; updateState: (enabled: boolean) => Promise<void>}>();
 const queryClient = useQueryClient();

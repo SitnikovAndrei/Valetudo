@@ -3,8 +3,8 @@ import {ref} from "vue";
 import {useQuery} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
-import {Capability} from "../../../frontend/src/api/types";
-import {fetchDuststreamingConfiguration, fetchDuststreamingProperties} from "../../../frontend/src/api/client";
+import {Capability} from "../api/types";
+import {fetchDuststreamingConfiguration, fetchDuststreamingProperties} from "../api/client";
 import DuststreamCanvas from "../components/DuststreamCanvas.vue";
 
 const props = defineProps<{capabilities: Capability[]}>();

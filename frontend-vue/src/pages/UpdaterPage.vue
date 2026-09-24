@@ -5,7 +5,7 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import Message from "primevue/message";
 import ProgressBar from "primevue/progressbar";
-import {fetchUpdaterState, sendUpdaterCommand} from "../../../frontend/src/api/client";
+import {fetchUpdaterState, sendUpdaterCommand} from "../api/client";
 import {valueLabel} from "../i18n/labels";
 
 type Command = "check" | "download" | "apply";

@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {RobotAttributeClass, type StatusState} from "../../frontend/src/api/RawRobotState";
+import {RobotAttributeClass, type StatusState} from "./api/RawRobotState";
 import {isBasicCommandEnabled} from "./basicControl";
 
 const state = (value: StatusState["value"], flag: StatusState["flag"] = "none"): StatusState => ({

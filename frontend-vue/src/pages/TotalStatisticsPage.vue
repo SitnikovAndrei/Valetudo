@@ -4,9 +4,9 @@ import {useQuery} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import Message from "primevue/message";
-import {Capability, type ValetudoInformation, type ValetudoDataPoint} from "../../../frontend/src/api/types";
-import {fetchTotalStatistics} from "../../../frontend/src/api/client";
-import {statisticsAchievements} from "../../../frontend/src/robot/res/StatisticsAchievements";
+import {Capability, type ValetudoInformation, type ValetudoDataPoint} from "../api/types";
+import {fetchTotalStatistics} from "../api/client";
+import {statisticsAchievements} from "../robot/res/StatisticsAchievements";
 import {translate} from "../i18n";
 
 const props = defineProps<{capabilities: Capability[]; information: ValetudoInformation}>();

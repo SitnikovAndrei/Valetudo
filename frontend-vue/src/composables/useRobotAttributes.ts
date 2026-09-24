@@ -1,7 +1,7 @@
 import {computed, onMounted, onUnmounted} from "vue";
 import {useQuery, useQueryClient} from "@tanstack/vue-query";
-import {fetchStateAttributes, subscribeToStateAttributes} from "../../../frontend/src/api/client";
-import {RobotAttributeClass, type BatteryState, type StatusState} from "../../../frontend/src/api/RawRobotState";
+import {fetchStateAttributes, subscribeToStateAttributes} from "../api/client";
+import {RobotAttributeClass, type BatteryState, type StatusState} from "../api/RawRobotState";
 
 const queryKey = ["robotAttributes"];
 

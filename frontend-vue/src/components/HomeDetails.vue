@@ -4,9 +4,9 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
 import Select from "primevue/select";
-import {Capability} from "../../../frontend/src/api/types";
-import {RobotAttributeClass, type PresetSelectionState, type RobotAttribute} from "../../../frontend/src/api/RawRobotState";
-import {fetchCurrentStatistics, fetchPresetSelections, sendAutoEmptyDockManualTriggerCommand, sendMopDockCleanManualTriggerCommand, sendMopDockDryManualTriggerCommand, updatePresetSelection} from "../../../frontend/src/api/client";
+import {Capability} from "../api/types";
+import {RobotAttributeClass, type PresetSelectionState, type RobotAttribute} from "../api/RawRobotState";
+import {fetchCurrentStatistics, fetchPresetSelections, sendAutoEmptyDockManualTriggerCommand, sendMopDockCleanManualTriggerCommand, sendMopDockDryManualTriggerCommand, updatePresetSelection} from "../api/client";
 import {translate} from "../i18n";
 import {valueLabel} from "../i18n/labels";
 

@@ -4,12 +4,12 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import InputNumber from "primevue/inputnumber";
 import Message from "primevue/message";
-import {Capability, type Zone} from "../../../frontend/src/api/types";
-import type {StatusState} from "../../../frontend/src/api/RawRobotState";
+import {Capability, type Zone} from "../api/types";
+import type {StatusState} from "../api/RawRobotState";
 import {
     fetchMapSegmentationProperties, fetchStateAttributes, fetchZoneProperties,
     sendCleanSegmentsCommand, sendCleanZonesCommand, sendGoToCommand
-} from "../../../frontend/src/api/client";
+} from "../api/client";
 import {useRobotMap} from "../composables/useRobotMap";
 import MapCanvas from "./MapCanvas.vue";
 import {translate} from "../i18n";

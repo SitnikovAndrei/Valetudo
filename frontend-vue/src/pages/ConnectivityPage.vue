@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {Capability} from "../../../frontend/src/api/types";
+import {Capability} from "../api/types";
 
 defineProps<{capabilities: Capability[]}>();
 </script>

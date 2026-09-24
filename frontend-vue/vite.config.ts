@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
     base: "./",
-    publicDir: "../frontend/public",
+    publicDir: "public",
     plugins: [vue(), tailwindcss()],
     build: {
         outDir: "build",
@@ -12,7 +12,6 @@ export default defineConfig({
         target: "es2015"
     },
     server: {
-        fs: {allow: [".."]},
         proxy: {
             "/api": process.env.VALETUDO_DEV_BACKEND ?? "http://127.0.0.1:80",
             "/_ssdp": process.env.VALETUDO_DEV_BACKEND ?? "http://127.0.0.1:80",

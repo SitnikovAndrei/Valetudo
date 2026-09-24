@@ -1,5 +1,5 @@
-import type {StatusState} from "../../frontend/src/api/RawRobotState";
-import type {BasicControlCommand} from "../../frontend/src/api/client";
+import type {StatusState} from "./api/RawRobotState";
+import type {BasicControlCommand} from "./api/client";
 
 const startStates: StatusState["value"][] = ["idle", "docked", "paused", "error"];
 const pauseStates: StatusState["value"][] = ["cleaning", "returning", "moving"];

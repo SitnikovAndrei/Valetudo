@@ -5,8 +5,8 @@ import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import Dialog from "primevue/dialog";
 import Message from "primevue/message";
-import {Capability, type ValetudoInformation} from "../../../frontend/src/api/types";
-import {fetchDuststreamingConfiguration, fetchMap, fetchPersistentMapState, sendMapReset, sendPersistentMapEnabled, sendStartMappingPass} from "../../../frontend/src/api/client";
+import {Capability, type ValetudoInformation} from "../api/types";
+import {fetchDuststreamingConfiguration, fetchMap, fetchPersistentMapState, sendMapReset, sendPersistentMapEnabled, sendStartMappingPass} from "../api/client";
 
 const props = defineProps<{capabilities: Capability[]; information: ValetudoInformation}>();
 const queryClient = useQueryClient();

@@ -8,8 +8,8 @@ import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
 import Message from "primevue/message";
 import ProgressBar from "primevue/progressbar";
-import {Capability, type DoNotDisturbConfiguration} from "../../../frontend/src/api/types";
-import {fetchDoNotDisturbConfiguration, fetchSpeakerVolumeState, fetchVoicePackManagementState, sendDoNotDisturbConfiguration, sendSpeakerTestCommand, sendSpeakerVolume, sendVoicePackManagementCommand} from "../../../frontend/src/api/client";
+import {Capability, type DoNotDisturbConfiguration} from "../api/types";
+import {fetchDoNotDisturbConfiguration, fetchSpeakerVolumeState, fetchVoicePackManagementState, sendDoNotDisturbConfiguration, sendSpeakerTestCommand, sendSpeakerVolume, sendVoicePackManagementCommand} from "../api/client";
 import {valueLabel} from "../i18n/labels";
 
 const props = defineProps<{capabilities: Capability[]}>();

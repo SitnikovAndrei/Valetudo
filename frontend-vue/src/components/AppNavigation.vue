@@ -4,8 +4,8 @@ import {useRoute} from "vue-router";
 import {useQuery} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Drawer from "primevue/drawer";
-import {Capability} from "../../../frontend/src/api/types";
-import {fetchDuststreamingConfiguration} from "../../../frontend/src/api/client";
+import {Capability} from "../api/types";
+import {fetchDuststreamingConfiguration} from "../api/client";
 import {translate} from "../i18n";
 
 const props = defineProps<{capabilities: Capability[]; variant: "mobile" | "desktop"}>();

@@ -3,7 +3,7 @@ import {nextTick, onMounted, ref} from "vue";
 import Button from "primevue/button";
 import Textarea from "primevue/textarea";
 import ElizaBot from "eliza-as-promised";
-import {filter} from "../../../frontend/src/valetudo/res/Badwords";
+import {filter} from "../valetudo/res/Badwords";
 import ValetudoBounce from "../components/ValetudoBounce.vue";
 import Woodcock from "../components/Woodcock.vue";
 import {aprilFools} from "../aprilFools";

@@ -1,4 +1,4 @@
-import type {Timer} from "../../frontend/src/api/types";
+import type {Timer} from "./api/types";
 import {cloneJson} from "./cloneJson";
 
 export function shiftTimer(timer: Timer, offsetMinutes: number): Timer {

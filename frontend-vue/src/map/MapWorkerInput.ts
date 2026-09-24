@@ -1,5 +1,5 @@
 import {toRaw} from "vue";
-import type {RawMapData} from "../../../frontend/src/api/RawMapData";
+import type {RawMapData} from "../api/RawMapData";
 
 export function prepareMapWorkerInput(map: RawMapData, selectedSegmentIds: string[]): {
     map: RawMapData;

@@ -4,7 +4,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
 import Select from "primevue/select";
-import {fetchQuirks, sendSetQuirkValueCommand} from "../../../frontend/src/api/client";
+import {fetchQuirks, sendSetQuirkValueCommand} from "../api/client";
 import {i18n, translate} from "../i18n";
 import {valueLabel} from "../i18n/labels";
 

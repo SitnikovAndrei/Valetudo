@@ -1,6 +1,6 @@
 import {translate} from "./index";
 import {ru} from "./ru";
-import type {ConsumableSubType, ConsumableType} from "../../../frontend/src/api/types";
+import type {ConsumableSubType, ConsumableType} from "../api/types";
 
 const knownValues: Record<string, string> = {
     segments: "Segments", zones: "Zones", goto: "Point", pan: "Pan",

@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {reactive} from "vue";
-import {RawMapLayerType, type RawMapData} from "../../../frontend/src/api/RawMapData";
+import {RawMapLayerType, type RawMapData} from "../api/RawMapData";
 import {prepareMapWorkerInput} from "./MapWorkerInput";
 
 describe("map worker input", () => {

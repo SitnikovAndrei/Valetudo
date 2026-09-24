@@ -7,10 +7,10 @@ import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
 import Message from "primevue/message";
 import Select from "primevue/select";
-import {Capability} from "../../../frontend/src/api/types";
+import {Capability} from "../api/types";
 import {aprilFools} from "../aprilFools";
 import ValetudoActivation from "../components/ValetudoActivation.vue";
-import {fetchDuststreamingConfiguration, fetchUpdaterConfiguration, fetchValetudoCustomizations, sendDuststreamingConfiguration, sendRestoreDefaultConfigurationAction, sendUpdaterConfiguration, sendValetudoCustomizations} from "../../../frontend/src/api/client";
+import {fetchDuststreamingConfiguration, fetchUpdaterConfiguration, fetchValetudoCustomizations, sendDuststreamingConfiguration, sendRestoreDefaultConfigurationAction, sendUpdaterConfiguration, sendValetudoCustomizations} from "../api/client";
 
 const props = defineProps<{capabilities: Capability[]}>();
 const queryClient = useQueryClient();

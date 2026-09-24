@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {ValetudoTimerActionType, type Timer} from "../../frontend/src/api/types";
+import {ValetudoTimerActionType, type Timer} from "./api/types";
 import {shiftTimer} from "./timerTime";
 
 const timer: Timer = {id: "one", enabled: true, dow: [1, 5], hour: 23, minute: 30, action: {type: ValetudoTimerActionType.FULL_CLEANUP, params: {}}};

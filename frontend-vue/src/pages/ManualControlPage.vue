@@ -4,8 +4,8 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import Message from "primevue/message";
-import {Capability, type ManualControlCommand, type ValetudoManualMovementVector} from "../../../frontend/src/api/types";
-import {fetchDuststreamingConfiguration, fetchDuststreamingProperties, fetchHighResolutionManualControlState, fetchManualControlProperties, fetchManualControlState, sendHighResolutionManualControlInteraction, sendManualControlInteraction} from "../../../frontend/src/api/client";
+import {Capability, type ManualControlCommand, type ValetudoManualMovementVector} from "../api/types";
+import {fetchDuststreamingConfiguration, fetchDuststreamingProperties, fetchHighResolutionManualControlState, fetchManualControlProperties, fetchManualControlState, sendHighResolutionManualControlInteraction, sendManualControlInteraction} from "../api/client";
 import DuststreamCanvas from "../components/DuststreamCanvas.vue";
 
 const props = defineProps<{capabilities: Capability[]}>();

@@ -3,7 +3,7 @@ import {computed} from "vue";
 import {useMutation} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
-import {Capability, type AutoEmptyDockAutoEmptyDuration, type AutoEmptyDockAutoEmptyInterval, type CarpetSensorMode, type CleanRoute, type MopDockMopDryingDuration, type MopDockMopWashTemperature} from "../../../frontend/src/api/types";
+import {Capability, type AutoEmptyDockAutoEmptyDuration, type AutoEmptyDockAutoEmptyInterval, type CarpetSensorMode, type CleanRoute, type MopDockMopDryingDuration, type MopDockMopWashTemperature} from "../api/types";
 import {
     fetchAutoEmptyDockAutoEmptyDuration, fetchAutoEmptyDockAutoEmptyDurationControlProperties,
     fetchAutoEmptyDockAutoEmptyInterval, fetchAutoEmptyDockAutoEmptyIntervalProperties,
@@ -20,7 +20,7 @@ import {
     sendMopDockMopAutoDryingControlState, sendMopDockMopDryingTime, sendMopDockMopWashTemperature, sendMopExtensionControlState,
     sendMopExtensionFurnitureLegHandlingControlState, sendMopTwistControlState,
     sendObstacleAvoidanceControlState, sendObstacleImagesState, sendPetObstacleAvoidanceControlState
-} from "../../../frontend/src/api/client";
+} from "../api/client";
 import ToggleSetting from "../components/ToggleSetting.vue";
 import SelectSetting from "../components/SelectSetting.vue";
 import {translate} from "../i18n";

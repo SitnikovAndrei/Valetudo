@@ -3,7 +3,7 @@ import {computed} from "vue";
 import {useQuery} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
-import {fetchRobotInformation, fetchRobotProperties, fetchSystemHostInfo, fetchSystemRuntimeInfo, fetchValetudoInformation, fetchValetudoVersionInformation} from "../../../frontend/src/api/client";
+import {fetchRobotInformation, fetchRobotProperties, fetchSystemHostInfo, fetchSystemRuntimeInfo, fetchValetudoInformation, fetchValetudoVersionInformation} from "../api/client";
 import {translate} from "../i18n";
 
 const robot = useQuery({queryKey: ["robotInformation"], queryFn: fetchRobotInformation});

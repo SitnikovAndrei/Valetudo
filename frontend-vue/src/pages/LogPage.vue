@@ -4,8 +4,8 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
 import Select from "primevue/select";
-import {fetchValetudoLog, fetchValetudoLogLevel, sendValetudoLogLevel, subscribeToLogMessages} from "../../../frontend/src/api/client";
-import type {LogLevel} from "../../../frontend/src/api/types";
+import {fetchValetudoLog, fetchValetudoLogLevel, sendValetudoLogLevel, subscribeToLogMessages} from "../api/client";
+import type {LogLevel} from "../api/types";
 import {valueLabel} from "../i18n/labels";
 
 const queryClient = useQueryClient();

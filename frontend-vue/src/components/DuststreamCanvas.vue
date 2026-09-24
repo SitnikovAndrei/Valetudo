@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref, watch} from "vue";
 import {CRTCompositor, FetchSource, Player} from "jsmpeg";
-import {Capability} from "../../../frontend/src/api/types";
-import {valetudoAPIBaseURL} from "../../../frontend/src/api/client";
+import {Capability} from "../api/types";
+import {valetudoAPIBaseURL} from "../api/client";
 
 const props = defineProps<{width: number; height: number}>();
 const canvas = ref<HTMLCanvasElement>();

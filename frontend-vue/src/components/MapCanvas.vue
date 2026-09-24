@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref, watch} from "vue";
-import type {RawMapData, RawMapEntity} from "../../../frontend/src/api/RawMapData";
-import {RawMapEntityType, RawMapLayerType} from "../../../frontend/src/api/RawMapData";
-import {MapLayerManager} from "../../../frontend/src/map/MapLayerManager";
-import robotIcon from "../../../frontend/src/map/structures/icons/robot.svg";
-import chargerIcon from "../../../frontend/src/map/structures/icons/charger.svg";
-import targetIcon from "../../../frontend/src/map/structures/icons/marker.svg";
-import activeTargetIcon from "../../../frontend/src/map/structures/icons/marker_active.svg";
-import obstacleIcon from "../../../frontend/src/map/structures/icons/obstacle.svg";
-import segmentIcon from "../../../frontend/src/map/structures/icons/segment.svg";
-import selectedSegmentIcon from "../../../frontend/src/map/structures/icons/segment_selected.svg";
+import type {RawMapData, RawMapEntity} from "../api/RawMapData";
+import {RawMapEntityType, RawMapLayerType} from "../api/RawMapData";
+import {MapLayerManager} from "../map/MapLayerManager";
+import robotIcon from "../map/structures/icons/robot.svg";
+import chargerIcon from "../map/structures/icons/charger.svg";
+import targetIcon from "../map/structures/icons/marker.svg";
+import activeTargetIcon from "../map/structures/icons/marker_active.svg";
+import obstacleIcon from "../map/structures/icons/obstacle.svg";
+import segmentIcon from "../map/structures/icons/segment.svg";
+import selectedSegmentIcon from "../map/structures/icons/segment_selected.svg";
 import {activated, aprilFools} from "../aprilFools";
 import {i18n, translate} from "../i18n";
 import {MapViewport, type Point} from "../map/MapViewport";
