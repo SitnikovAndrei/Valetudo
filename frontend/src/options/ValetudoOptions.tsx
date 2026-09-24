@@ -20,6 +20,7 @@ import {useCapabilitiesSupported} from "../CapabilitiesProvider";
 import {ButtonListMenuItem} from "../components/list_menu/ButtonListMenuItem";
 import {SelectListMenuItem, SelectListMenuItemOption} from "../components/list_menu/SelectListMenuItem";
 import {SpacerListMenuItem} from "../components/list_menu/SpacerListMenuItem";
+import {ToggleSwitchListMenuItem} from "../components/list_menu/ToggleSwitchListMenuItem";
 import { TextEditModalListMenuItem } from "../components/list_menu/TextEditModalListMenuItem";
 import { DuststreamingListMenuItem } from "../components/list_menu/DuststreamingListMenuItem";
 import { ActivationListMenuItem } from "./ValetudoActivation";
@@ -138,6 +139,23 @@ const UpdateProviderSelectListMenuItem = (): React.ReactElement => {
     );
 };
 
+const UpdaterEnabledListMenuItem = (): React.ReactElement => {
+    const {data, isPending, isError} = useUpdaterConfigurationQuery();
+    const {mutate, isPending: isUpdating} = useUpdaterConfigurationMutation();
+
+    return (
+        <ToggleSwitchListMenuItem
+            value={data?.enabled ?? false}
+            setValue={(enabled) => mutate({enabled: enabled})}
+            disabled={isPending || isUpdating || isError}
+            loadError={isError}
+            primaryLabel="Enable Updater"
+            secondaryLabel="Allow Valetudo to check for and install updates"
+            icon={<UpdaterIcon/>}
+        />
+    );
+};
+
 const ValetudoOptions = (): React.ReactElement => {
     const [duststreamingCapabilitySupported] = useCapabilitiesSupported(
         Capability.Duststreaming,
@@ -148,6 +166,7 @@ const ValetudoOptions = (): React.ReactElement => {
             <ConfigRestoreButtonListMenuItem key={"configRestoreAction"}/>,
             <SpacerListMenuItem key={"spacer0"}/>,
             <FriendlyNameEditModalListMenuItem key={"friendlyName"}/>,
+            <UpdaterEnabledListMenuItem key={"updaterEnabled"}/>,
             <UpdateProviderSelectListMenuItem key={"updateProviderSelect"}/>,
             <LinkListMenuItem
                 key={"analytics"}

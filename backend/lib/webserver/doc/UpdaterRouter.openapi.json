@@ -94,6 +94,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
                   "updateProvider": {
                     "type": "string",
                     "enum": [
@@ -119,6 +122,9 @@
             "schema": {
               "type": "object",
               "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
                 "updateProvider": {
                   "type": "string",
                   "enum": [

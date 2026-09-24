@@ -53,15 +53,19 @@ class UpdaterRouter {
             const currentConfig = this.config.get("updater");
 
             res.json({
+                enabled: currentConfig.enabled,
                 updateProvider: currentConfig.updateProvider.type
             });
         });
 
         this.router.put("/config", this.validator, (req, res) => {
-            if (typeof req.body.updateProvider === "string") {
+            if (
+                (typeof req.body.enabled === "boolean" || typeof req.body.updateProvider === "string") &&
+                (req.body.enabled === undefined || typeof req.body.enabled === "boolean")
+            ) {
                 const currentConfig = this.config.get("updater");
 
-                let newUpdateProviderConfig;
+                let newUpdateProviderConfig = currentConfig.updateProvider;
 
                 switch (req.body.updateProvider) {
                     case "github":
@@ -77,15 +81,19 @@ class UpdaterRouter {
                         };
 
                         break;
+                    case undefined:
+                        break;
+                    default:
+                        res.sendStatus(400);
+                        return;
                 }
 
-                if (newUpdateProviderConfig) {
-                    this.config.set("updater", Object.assign({}, currentConfig, {updateProvider: newUpdateProviderConfig}));
+                this.config.set("updater", Object.assign({}, currentConfig, {
+                    enabled: req.body.enabled ?? currentConfig.enabled,
+                    updateProvider: newUpdateProviderConfig
+                }));
 
-                    res.sendStatus(200);
-                } else {
-                    res.sendStatus(400);
-                }
+                res.sendStatus(200);
             } else {
                 res.sendStatus(400);
             }

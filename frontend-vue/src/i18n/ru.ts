@@ -564,6 +564,7 @@ export const ru: Record<string, string> = {
     "Up to 24 letters, digits, spaces or hyphens.": "До 24 букв, цифр, пробелов или дефисов.",
     "Update channel": "Канал обновлений",
     "Updater": "Обновление",
+    "Enable updater": "Включить обновления Valetudo",
     "Updater request failed.": "Ошибка запроса обновления.",
     "Updates may need troubleshooting afterward. Read the changelog before applying.": "После обновления может потребоваться устранение неполадок. Перед установкой прочитайте список изменений.",
     "Uptime": "Время работы",
