@@ -380,7 +380,8 @@ const TYPE_SORT_MAPPING = {
     "wall": 16
 };
 
-const wallColor = hexToRgb("#333333");
+const wallColor = hexToRgb("#83948b");
+const darkWallColor = hexToRgb("#688477");
 
 export const COLORS: LayerColors = {
     floor: hexToRgb(lightPalette.blue),
@@ -401,9 +402,9 @@ export const ACCENT_COLORS: LayerColors = {
 };
 
 export const BACKGROUND_COLORS: LayerColors = {
-    floor: adjustRGBColorBrightness(COLORS.floor, -40),
-    wall: adjustRGBColorBrightness(COLORS.wall, -15),
-    segments: COLORS.segments.map(c => adjustRGBColorBrightness(c, -40))
+    floor: adjustRGBColorBrightness(COLORS.floor, 5),
+    wall: adjustRGBColorBrightness(COLORS.wall, 18),
+    segments: COLORS.segments.map(c => adjustRGBColorBrightness(c, 5))
 };
 
 export const BACKGROUND_ACCENT_COLORS: LayerColors = {
@@ -414,7 +415,7 @@ export const BACKGROUND_ACCENT_COLORS: LayerColors = {
 
 export const DARK_COLORS: LayerColors = {
     floor: hexToRgb(darkPalette.blue),
-    wall: wallColor,
+    wall: darkWallColor,
     segments: [
         hexToRgb(darkPalette.teal),
         hexToRgb(darkPalette.green),
@@ -425,16 +426,16 @@ export const DARK_COLORS: LayerColors = {
 };
 
 export const DARK_ACCENT_COLORS: LayerColors = {
-    floor: adjustRGBColorBrightness(DARK_COLORS.floor, -25),
-    wall: adjustRGBColorBrightness(DARK_COLORS.wall, -15),
-    segments: COLORS.segments.map(c => adjustRGBColorBrightness(c, -25))
+    floor: adjustRGBColorBrightness(DARK_COLORS.floor, 15),
+    wall: adjustRGBColorBrightness(DARK_COLORS.wall, 8),
+    segments: DARK_COLORS.segments.map(c => adjustRGBColorBrightness(c, 15))
 };
 
 
 export const DARK_BACKGROUND_COLORS: LayerColors = {
-    floor: adjustRGBColorBrightness(COLORS.floor, -50),
-    wall: adjustRGBColorBrightness(COLORS.wall, -20),
-    segments: COLORS.segments.map(c => adjustRGBColorBrightness(c, -50))
+    floor: adjustRGBColorBrightness(DARK_COLORS.floor, -25),
+    wall: adjustRGBColorBrightness(DARK_COLORS.wall, -25),
+    segments: DARK_COLORS.segments.map(c => adjustRGBColorBrightness(c, -25))
 };
 
 export const DARK_BACKGROUND_ACCENT_COLORS: LayerColors = {

@@ -28,6 +28,16 @@ describe("map viewport", () => {
         expect(viewport.toWorldPoint({x: 300, y: 225}).y).toBeCloseTo(before.y);
     });
 
+    it("refits after an aspect ratio change while preserving the user's zoom", () => {
+        const viewport = new MapViewport();
+        viewport.resize(800, 350, 1, map);
+        viewport.zoom(1.5, {x: 400, y: 175});
+        viewport.resize(390, 388, 1, map);
+        expect(viewport.scale).toBeCloseTo(390 / (80 * 1.1) * 1.5);
+        expect(viewport.toWorldPoint({x: 195, y: 194}).x).toBeCloseTo(50);
+        expect(viewport.toWorldPoint({x: 195, y: 194}).y).toBeCloseTo(50);
+    });
+
     it("clamps selection coordinates but allows zoom around the empty area", () => {
         const viewport = new MapViewport();
         viewport.resize(800, 600, 2, map);

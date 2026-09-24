@@ -16,17 +16,22 @@ export class MapViewport {
         if (!width || !height) return;
         const oldWidth = this.width;
         const oldHeight = this.height;
+        const oldScale = this.scale;
+        const zoomRatio = this.scale / this.fitScale;
+        const center = {
+            x: (oldWidth / 2 - this.offsetX) / oldScale,
+            y: (oldHeight / 2 - this.offsetY) / oldScale
+        };
         this.width = width;
         this.height = height;
         this.dpr = dpr;
         if (!this.initialized) {
             this.fit(map);
         } else if (oldWidth && oldHeight) {
-            const factor = Math.min(width / oldWidth, height / oldHeight);
-            this.scale *= factor;
-            this.fitScale *= factor;
-            this.offsetX = (this.offsetX - oldWidth / 2) * factor + width / 2;
-            this.offsetY = (this.offsetY - oldHeight / 2) * factor + height / 2;
+            this.fit(map);
+            this.scale *= zoomRatio;
+            this.offsetX = width / 2 - center.x * this.scale;
+            this.offsetY = height / 2 - center.y * this.scale;
         }
     }
 

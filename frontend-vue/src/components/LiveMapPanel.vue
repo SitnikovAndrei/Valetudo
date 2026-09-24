@@ -6,6 +6,7 @@ import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import Message from "primevue/message";
 import {Capability, type Zone} from "../api/types";
+import {RawMapEntityType, RawMapLayerMaterial} from "../api/RawMapData";
 import type {StatusState} from "../api/RawRobotState";
 import {
     fetchMapSegmentationProperties, fetchStateAttributes, fetchZoneProperties,
@@ -30,6 +31,8 @@ const queryClient = useQueryClient();
 const map = useRobotMap();
 const mapCanvas = ref<InstanceType<typeof MapCanvas>>();
 const mapExpanded = ref(false);
+const carpetMaterials = [RawMapLayerMaterial.Carpet, RawMapLayerMaterial.CarpetLow, RawMapLayerMaterial.CarpetHigh];
+const hasCarpets = computed(() => map.data.value?.entities.some(entity => entity.type === RawMapEntityType.Carpet) === true || map.data.value?.layers.some(layer => layer.metaData.material !== undefined && carpetMaterials.includes(layer.metaData.material)) === true);
 const modes = computed<Mode[]>(() => [
     "all",
     ...(props.capabilities.includes(Capability.MapSegmentation) ? ["segments" as const] : []),
@@ -160,6 +163,10 @@ function addZone(zone: MapZone) {
     zones.value = [...zones.value, zone];
 }
 
+function removeZone(index: number) {
+    zones.value = zones.value.filter((_, zoneIndex) => zoneIndex !== index);
+}
+
 function selectPoint(point: Point) {
     if (!map.data.value) return;
     pointX.value = Math.round(point.x * map.data.value.pixelSize);
@@ -200,7 +207,8 @@ function execute() {
             <div v-else class="home-map-viewport">
                 <MapCanvas ref="mapCanvas" :map="map.data.value" :palette-mode="paletteMode" :mode="mode === 'all' ? 'pan' : mode"
                     :selected-segment-ids="selectedSegmentIds" :zones="zones" :target="target"
-                    @segment-click="toggleSegment" @zone-created="addZone" @point-selected="selectPoint" />
+                    @segment-click="toggleSegment" @zone-created="addZone" @zone-remove="removeZone" @point-selected="selectPoint" />
+                <div v-if="hasCarpets" class="home-map-carpet-legend"><span aria-hidden="true" />{{ $t("Carpets") }}</div>
                 <div class="home-map-zoom" role="group" :aria-label='$t("Map zoom")'>
                     <button type="button" :aria-label='$t("Zoom in")' @click="mapCanvas?.zoomIn()">+</button>
                     <button type="button" :aria-label='$t("Zoom out")' @click="mapCanvas?.zoomOut()">−</button>
@@ -223,6 +231,9 @@ function execute() {
                 <small v-else-if="mode === 'segments'">{{ selectedSegmentIds.length ? $t('Selected rooms: {count}', {count: selectedSegmentIds.length}) : $t('Tap rooms to select them.') }}</small>
                 <small v-else-if="mode === 'zones'">{{ zones.length ? $t('Selected zones: {count}', {count: zones.length}) : $t('Drag on the map to select an area.') }}</small>
                 <small v-else>{{ target ? $t('Destination selected.') : $t('Tap the destination on the map.') }}</small>
+            </div>
+            <div v-if="mode === 'zones' && zones.length" class="home-zone-list" role="list" :aria-label='$t("Selected zones")'>
+                <div v-for="(_, index) in zones" :key="index" role="listitem"><span>{{ $t("Zone {number}", {number: index + 1}) }}</span><button type="button" :aria-label='$t("Remove zone {number}", {number: index + 1})' @click="removeZone(index)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5 19 19M19 5 5 19" /></svg></button></div>
             </div>
             <template v-if="map.data.value && mode === 'segments'">
                 <div class="mb-3 flex flex-wrap gap-2" role="group" :aria-label='$t("Select rooms")'>

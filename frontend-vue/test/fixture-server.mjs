@@ -3,6 +3,9 @@ import fs from "node:fs";
 
 const fixtureMap = JSON.parse(fs.readFileSync(new URL("../../backend/test/lib/robots/dreame/res/map/d9_1058_with_segments.json", import.meta.url)));
 fixtureMap.metaData.nonce = "fixture-map-1";
+if (process.env.FIXTURE_CARPET === "1") {
+    fixtureMap.entities.push({type: "carpet", metaData: {id: "fixture-carpet"}, points: [3500, 2900, 3690, 2900, 3690, 3080, 3500, 3080]});
+}
 
 const status = {
     __class: "StatusStateAttribute",

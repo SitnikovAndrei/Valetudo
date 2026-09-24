@@ -3,13 +3,6 @@ import {onBeforeUnmount, onMounted, ref, watch} from "vue";
 import type {RawMapData, RawMapEntity} from "../api/RawMapData";
 import {RawMapEntityType, RawMapLayerType} from "../api/RawMapData";
 import {MapLayerManager} from "../map/MapLayerManager";
-import robotIcon from "../map/structures/icons/robot.svg";
-import chargerIcon from "../map/structures/icons/charger.svg";
-import targetIcon from "../map/structures/icons/marker.svg";
-import activeTargetIcon from "../map/structures/icons/marker_active.svg";
-import obstacleIcon from "../map/structures/icons/obstacle.svg";
-import segmentIcon from "../map/structures/icons/segment.svg";
-import selectedSegmentIcon from "../map/structures/icons/segment_selected.svg";
 import {activated, aprilFools} from "../aprilFools";
 import {i18n, translate} from "../i18n";
 import {MapViewport, type Point} from "../map/MapViewport";
@@ -34,6 +27,7 @@ const emit = defineEmits<{
     "segment-click": [id: string];
     "zone-created": [zone: MapZone];
     "point-selected": [point: Point];
+    "zone-remove": [index: number];
     "shape-created": [shape: MapZone];
     "entity-updated": [index: number, points: number[]];
 }>();
@@ -46,34 +40,76 @@ let observer: ResizeObserver | undefined;
 let layerUpdate = Promise.resolve();
 let disposed = false;
 let draggedEntity: {index: number; start: Point; points: number[]} | undefined;
-const icons = {
-    robot: new Image(),
-    charger: new Image(),
-    target: new Image(),
-    activeTarget: new Image(),
-    obstacle: new Image(),
-    segment: new Image(),
-    selectedSegment: new Image()
-};
-icons.robot.src = robotIcon;
-icons.charger.src = chargerIcon;
-icons.target.src = targetIcon;
-icons.activeTarget.src = activeTargetIcon;
-icons.obstacle.src = obstacleIcon;
-icons.segment.src = segmentIcon;
-icons.selectedSegment.src = selectedSegmentIcon;
-Object.values(icons).forEach(icon => { icon.onload = () => draw(); });
+type Marker = "robot" | "charger" | "target" | "obstacle" | "segment";
 
-function drawIcon(ctx: CanvasRenderingContext2D, icon: HTMLImageElement, x: number, y: number, divisor: number, anchorY = 0.5, angle = 0) {
-    if (!icon.complete || !icon.naturalWidth) return;
-    const width = icon.naturalWidth * viewport.scale / divisor;
-    const height = icon.naturalHeight * viewport.scale / divisor;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+function drawMarker(ctx: CanvasRenderingContext2D, kind: Marker, x: number, y: number, options: {angle?: number; label?: string; selected?: boolean} = {}) {
     const position = viewport.toCanvasPoint({x, y});
-    ctx.translate(position.x, position.y);
-    ctx.rotate(angle * Math.PI / 180);
-    ctx.drawImage(icon, -width / 2, -height * anchorY, width, height);
+    const dark = props.paletteMode === "dark";
+    const accent = dark ? "#86cba2" : "#246e53";
+    const surface = dark ? "#1d2d26" : "#ffffff";
+    const text = dark ? "#edf5ed" : "#19352c";
+    ctx.save();
+    ctx.setTransform(viewport.dpr, 0, 0, viewport.dpr, position.x, position.y);
+    ctx.lineWidth = 2;
+    if (kind === "segment") {
+        const label = options.label ?? "";
+        ctx.font = "700 11px Manrope, sans-serif";
+        const width = Math.max(28, Math.min(92, ctx.measureText(label).width + 17));
+        ctx.beginPath();
+        ctx.roundRect(-width / 2, -13, width, 26, 13);
+        ctx.fillStyle = options.selected ? accent : surface;
+        ctx.strokeStyle = accent;
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = options.selected ? surface : text;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, 0, 1, width - 12);
+    } else if (kind === "robot") {
+        ctx.beginPath();
+        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.fillStyle = accent;
+        ctx.strokeStyle = surface;
+        ctx.fill();
+        ctx.stroke();
+        ctx.rotate((options.angle ?? 0) * Math.PI / 180);
+        ctx.beginPath();
+        ctx.moveTo(0, -7);
+        ctx.lineTo(5, 5);
+        ctx.lineTo(0, 2);
+        ctx.lineTo(-5, 5);
+        ctx.closePath();
+        ctx.fillStyle = surface;
+        ctx.fill();
+    } else if (kind === "charger") {
+        ctx.beginPath();
+        ctx.roundRect(-11, -11, 22, 22, 6);
+        ctx.fillStyle = surface;
+        ctx.strokeStyle = accent;
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-4, -3);
+        ctx.lineTo(-4, 2);
+        ctx.quadraticCurveTo(0, 7, 4, 2);
+        ctx.lineTo(4, -3);
+        ctx.moveTo(-2, -6);
+        ctx.lineTo(-2, -3);
+        ctx.moveTo(2, -6);
+        ctx.lineTo(2, -3);
+        ctx.stroke();
+    } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, kind === "target" ? 10 : 7, 0, Math.PI * 2);
+        ctx.fillStyle = surface;
+        ctx.strokeStyle = kind === "obstacle" ? "#bd8450" : accent;
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, kind === "target" ? 3 : 2, 0, Math.PI * 2);
+        ctx.fillStyle = kind === "obstacle" ? "#bd8450" : accent;
+        ctx.fill();
+    }
     ctx.restore();
 }
 
@@ -104,7 +140,7 @@ function resize() {
     draw();
 }
 
-function polygon(ctx: CanvasRenderingContext2D, entity: RawMapEntity) {
+function polygonPath(ctx: CanvasRenderingContext2D, entity: RawMapEntity) {
     if (entity.points.length < 4) return;
     const unit = props.map.pixelSize;
     ctx.beginPath();
@@ -113,7 +149,45 @@ function polygon(ctx: CanvasRenderingContext2D, entity: RawMapEntity) {
         ctx.lineTo(entity.points[index] / unit, entity.points[index + 1] / unit);
     }
     if (entity.points.length > 4 && entity.type !== RawMapEntityType.VirtualWall) ctx.closePath();
+}
+
+function polygon(ctx: CanvasRenderingContext2D, entity: RawMapEntity) {
+    if (entity.points.length < 4) return;
+    polygonPath(ctx, entity);
     ctx.stroke();
+}
+
+const carpetPatterns = new Map<string, CanvasPattern>();
+function drawCarpets(ctx: CanvasRenderingContext2D) {
+    const dark = props.paletteMode === "dark";
+    let pattern = carpetPatterns.get(props.paletteMode);
+    if (!pattern) {
+        const tile = document.createElement("canvas");
+        tile.width = 8;
+        tile.height = 8;
+        const tileContext = tile.getContext("2d")!;
+        tileContext.fillStyle = dark ? "#5b5643" : "#e7ddc7";
+        tileContext.fillRect(0, 0, 8, 8);
+        tileContext.strokeStyle = dark ? "#8f876b" : "#c9b890";
+        tileContext.lineWidth = 1;
+        tileContext.beginPath();
+        tileContext.moveTo(-2, 8);
+        tileContext.lineTo(8, -2);
+        tileContext.moveTo(2, 10);
+        tileContext.lineTo(10, 2);
+        tileContext.stroke();
+        pattern = ctx.createPattern(tile, "repeat")!;
+        carpetPatterns.set(props.paletteMode, pattern);
+    }
+    for (const entity of props.map.entities) {
+        if (entity.type !== RawMapEntityType.Carpet || entity.points.length < 6) continue;
+        polygonPath(ctx, entity);
+        ctx.fillStyle = pattern;
+        ctx.fill();
+        ctx.strokeStyle = dark ? "#ab9b70" : "#ae996b";
+        ctx.lineWidth = Math.max(1, viewport.dpr / viewport.scale);
+        ctx.stroke();
+    }
 }
 
 function drawEntities(ctx: CanvasRenderingContext2D) {
@@ -125,7 +199,7 @@ function drawEntities(ctx: CanvasRenderingContext2D) {
         switch (entity.type) {
             case RawMapEntityType.Path:
             case RawMapEntityType.PredictedPath:
-                ctx.strokeStyle = dark ? "#ffffff" : "#e1ece3";
+                ctx.strokeStyle = dark ? "#9ad1a4" : "#65b386";
                 ctx.setLineDash(entity.type === RawMapEntityType.PredictedPath ? [3, 3] : []);
                 polygon(ctx, entity);
                 ctx.setLineDash([]);
@@ -133,43 +207,35 @@ function drawEntities(ctx: CanvasRenderingContext2D) {
             case RawMapEntityType.NoGoArea:
             case RawMapEntityType.NoMopArea:
             case RawMapEntityType.VirtualWall:
-                ctx.strokeStyle = entity.type === RawMapEntityType.NoMopArea ? "#f7a844" : "#ed6772";
+                ctx.strokeStyle = entity.type === RawMapEntityType.NoMopArea ? "#bf934a" : "#c96b67";
                 ctx.lineWidth = 2;
                 polygon(ctx, entity);
                 break;
             case RawMapEntityType.Threshold:
             case RawMapEntityType.Curtain:
             case RawMapEntityType.Ramp:
-                ctx.strokeStyle = "#78a9f3";
+                ctx.strokeStyle = dark ? "#a7c7b8" : "#729a88";
                 ctx.lineWidth = 2;
                 polygon(ctx, entity);
                 break;
             case RawMapEntityType.ActiveZone:
-                ctx.strokeStyle = "#6ccfa0";
+                ctx.strokeStyle = dark ? "#86cba2" : "#246e53";
                 polygon(ctx, entity);
                 break;
             case RawMapEntityType.Obstacle:
-                drawIcon(ctx, icons.obstacle, x, y, 8);
+                drawMarker(ctx, "obstacle", x, y);
                 break;
         }
     }
 }
 
 function drawSegmentLabels(ctx: CanvasRenderingContext2D) {
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = "6px IBM Plex Sans, sans-serif";
     for (const layer of props.map.layers) {
         if (layer.type !== RawMapLayerType.Segment || !layer.metaData.segmentId) continue;
         const {x, y} = getSegmentLabelPoint(layer);
         const selected = props.selectedSegmentIds.includes(layer.metaData.segmentId);
-        drawIcon(ctx, selected ? icons.selectedSegment : icons.segment, x, y, 4, 2 / 3, layer.metaData.active ? 180 : 0);
-        ctx.fillStyle = "#ffffff";
-        ctx.strokeStyle = "#121212";
-        ctx.lineWidth = 0.8;
         const label = layer.metaData.name || layer.metaData.segmentId;
-        ctx.strokeText(label, x, y + 7, 40);
-        ctx.fillText(label, x, y + 7, 40);
+        drawMarker(ctx, "segment", x, y, {label, selected});
     }
 }
 
@@ -179,18 +245,50 @@ function drawForegroundIcons(ctx: CanvasRenderingContext2D) {
             if (entity.type !== type) continue;
             const x = entity.points[0] / props.map.pixelSize;
             const y = entity.points[1] / props.map.pixelSize;
-            if (type === RawMapEntityType.GoToTarget) drawIcon(ctx, icons.activeTarget, x, y, 7, 1);
-            else if (type === RawMapEntityType.ChargerLocation) drawIcon(ctx, icons.charger, x, y, 4.5);
-            else drawIcon(ctx, icons.robot, x, y, 4.5, 0.5, entity.metaData.angle ?? 0);
+            if (type === RawMapEntityType.GoToTarget) drawMarker(ctx, "target", x, y);
+            else if (type === RawMapEntityType.ChargerLocation) drawMarker(ctx, "charger", x, y);
+            else drawMarker(ctx, "robot", x, y, {angle: entity.metaData.angle});
         }
     }
 }
 
+function zoneDeletePoint(zone: MapZone): Point {
+    const topRight = viewport.toCanvasPoint({x: zone.b.x, y: zone.a.y});
+    const width = canvas.value?.clientWidth ?? viewport.width / viewport.dpr;
+    const height = canvas.value?.clientHeight ?? viewport.height / viewport.dpr;
+    return {
+        x: Math.max(18, Math.min(width - 18, topRight.x / viewport.dpr - 14)),
+        y: Math.max(18, Math.min(height - 18, topRight.y / viewport.dpr + 14))
+    };
+}
+
 function drawInteractionOverlays(ctx: CanvasRenderingContext2D) {
-    ctx.strokeStyle = "#f7a844";
-    ctx.lineWidth = 2;
+    const dark = props.paletteMode === "dark";
+    ctx.strokeStyle = dark ? "#86cba2" : "#246e53";
+    ctx.fillStyle = dark ? "rgba(134, 203, 162, .20)" : "rgba(36, 110, 83, .16)";
+    ctx.lineWidth = 2 * viewport.dpr / viewport.scale;
     for (const zone of props.zones) {
+        ctx.fillRect(zone.a.x, zone.a.y, zone.b.x - zone.a.x, zone.b.y - zone.a.y);
         ctx.strokeRect(zone.a.x, zone.a.y, zone.b.x - zone.a.x, zone.b.y - zone.a.y);
+        if (props.mode === "zones") {
+            const point = zoneDeletePoint(zone);
+            ctx.save();
+            ctx.setTransform(viewport.dpr, 0, 0, viewport.dpr, point.x * viewport.dpr, point.y * viewport.dpr);
+            ctx.beginPath();
+            ctx.arc(0, 0, 14, 0, Math.PI * 2);
+            ctx.fillStyle = dark ? "#1d2d26" : "#ffffff";
+            ctx.strokeStyle = dark ? "#86cba2" : "#246e53";
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-4, -4);
+            ctx.lineTo(4, 4);
+            ctx.moveTo(4, -4);
+            ctx.lineTo(-4, 4);
+            ctx.stroke();
+            ctx.restore();
+        }
     }
     const preview = gestures.preview;
     if ((props.mode === "zones" || props.mode === "rectangle" || props.mode === "line") && preview) {
@@ -200,7 +298,7 @@ function drawInteractionOverlays(ctx: CanvasRenderingContext2D) {
         else ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
     }
     if (props.target) {
-        drawIcon(ctx, icons.target, props.target.x, props.target.y, 7, 1);
+        drawMarker(ctx, "target", props.target.x, props.target.y);
     }
     if (props.editLine) {
         ctx.strokeStyle = "#f7a844";
@@ -222,6 +320,7 @@ function draw() {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(layers.getCanvas(), 0, 0);
     ctx.imageSmoothingEnabled = true;
+    drawCarpets(ctx);
     drawEntities(ctx);
     if (!props.coverage) drawSegmentLabels(ctx);
     drawForegroundIcons(ctx);
@@ -337,6 +436,17 @@ function onPointerUp(event: PointerEvent, cancelled = false) {
     if (!gesture) return;
     if (cancelled && draggedEntity) emit("entity-updated", draggedEntity.index, draggedEntity.points);
     if (!cancelled && !draggedEntity && !gesture.afterPinch && gestures.pointerCount === 0) {
+        if (gesture.tap && props.mode === "zones") {
+            for (let index = props.zones.length - 1; index >= 0; index--) {
+                const deletePoint = zoneDeletePoint(props.zones[index]);
+                if ((point.x - deletePoint.x) ** 2 + (point.y - deletePoint.y) ** 2 <= 18 ** 2) {
+                    emit("zone-remove", index);
+                    draggedEntity = undefined;
+                    draw();
+                    return;
+                }
+            }
+        }
         if (["zones", "rectangle", "line"].includes(props.mode) && gesture.moved > 8) {
             const a = mapPoint(gesture.start);
             const b = mapPoint(point);
