@@ -1,0 +1,22 @@
+* { box-sizing: border-box; }
+
+html { font-family: var(--font-body); }
+
+body {
+    margin: 0;
+    min-width: 320px;
+    background: radial-gradient(circle at 50% -10%, var(--app-stage), var(--app-bg) 70%);
+    color: var(--app-text);
+    font-size: var(--text-base);
+    line-height: 1.45;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-heading); letter-spacing: -.02em; }
+button, input, select, textarea { font: inherit; }
+a { color: var(--app-accent); }
+:focus-visible { outline: 3px solid var(--app-accent); outline-offset: 3px; }
+
+#app { min-height: 100dvh; }
+body.map-expanded { overflow: hidden; }
+
+.muted { color: var(--app-muted); }

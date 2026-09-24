@@ -4,6 +4,7 @@ import MarkdownIt from "markdown-it";
 import {AboutText} from "../valetudo/res/AboutText";
 import {HelpText} from "../valetudo/res/HelpText";
 import {translate} from "../i18n";
+import PageHeader from "../components/PageHeader.vue";
 
 const props = defineProps<{page: "about" | "help"}>();
 const renderer = new MarkdownIt({html: true, linkify: true});
@@ -12,5 +13,8 @@ const content = computed(() => renderer.render(props.page === "about" ? AboutTex
 </script>
 
 <template>
-    <section class="panel max-w-4xl"><h1 class="mb-6 text-2xl font-bold">{{ title }}</h1><div class="markdown-content" v-html="content" /></section>
+    <div class="page max-w-4xl">
+        <PageHeader :title="title" />
+        <section class="panel"><div class="markdown-content" v-html="content" /></section>
+    </div>
 </template>

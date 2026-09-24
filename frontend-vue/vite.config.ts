@@ -9,7 +9,7 @@ export default defineConfig({
     build: {
         outDir: "build",
         assetsDir: "static",
-        target: "es2015"
+        target: "es2020"
     },
     server: {
         proxy: {

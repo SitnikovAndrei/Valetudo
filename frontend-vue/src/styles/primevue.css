@@ -1,0 +1,13 @@
+/*
+ * One control scale for the whole app. PrimeVue defaults to 16px controls; the dashboard used 12px.
+ * Both now use --text-base with 40px touch targets.
+ */
+.p-button, .p-inputtext, .p-select, .p-select-label, .p-select-option, .p-inputnumber-input,
+.p-textarea, .p-message-text, .p-dialog, .p-drawer, .p-checkbox + label, .p-togglebutton { font-size: var(--text-base); }
+.p-button { min-height: 40px; font-weight: 600; }
+.p-button.p-button-sm { min-height: 34px; font-size: var(--text-sm); }
+.p-button .home-command-icon { flex: 0 0 18px; width: 18px; height: 18px; }
+.p-select { min-height: 40px; align-items: center; }
+.p-select-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-content .p-inputtext, .app-content .p-select, .app-content .p-inputnumber-input { max-width: 100%; }
+.p-dialog .p-dialog-title { font-family: var(--font-heading); }

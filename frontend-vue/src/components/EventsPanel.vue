@@ -8,6 +8,7 @@ import {fetchValetudoEvents, sendValetudoEventInteraction} from "../api/client";
 import type {ConsumableSubType, ConsumableType, ValetudoEvent, ValetudoEventInteraction} from "../api/types";
 import {translate} from "../i18n";
 import {consumableName} from "../i18n/labels";
+import {formatDateTime} from "../statistics";
 
 const queryClient = useQueryClient();
 const events = useQuery({queryKey: ["valetudoEvents"], queryFn: fetchValetudoEvents, staleTime: 30000, refetchInterval: 30000});
@@ -45,7 +46,7 @@ function act(event: ValetudoEvent, action: ValetudoEventInteraction["interaction
         <Message v-else-if="events.isError.value || interaction.isError.value" severity="error">{{ $t("Unable to load or update events.") }}</Message>
         <p v-else-if="!events.data.value?.length" class="muted mt-4">{{ $t("No events") }}</p>
         <div v-for="event in events.data.value" :key="event.id" class="border-b py-4" style="border-color: var(--app-border)">
-            <time class="muted text-xs" :datetime="event.timestamp">{{ new Date(event.timestamp).toLocaleString($i18n.locale) }}</time>
+            <time class="muted text-xs" :datetime="event.timestamp">{{ formatDateTime(event.timestamp) }}</time>
             <p class="my-2" :class="{'muted line-through': event.processed}">{{ content(event) }}</p>
             <div v-if="!event.processed" class="flex gap-2">
                 <template v-if="event.__class === 'PendingMapChangeValetudoEvent'"><Button :label='$t("Yes")' size="small" :disabled="interaction.isPending.value" @click="act(event, 'yes')" /><Button :label='$t("No")' size="small" outlined :disabled="interaction.isPending.value" @click="act(event, 'no')" /></template>

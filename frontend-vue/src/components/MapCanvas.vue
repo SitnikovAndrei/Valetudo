@@ -4,14 +4,16 @@ import type {RawMapData, RawMapEntity} from "../api/RawMapData";
 import {RawMapEntityType, RawMapLayerType} from "../api/RawMapData";
 import {MapLayerManager} from "../map/MapLayerManager";
 import {activated, aprilFools} from "../aprilFools";
-import {i18n, translate} from "../i18n";
+import {locale, translate} from "../i18n";
 import {MapViewport, type Point} from "../map/MapViewport";
 import {MapGestures} from "../map/MapGestures";
-import {getSegmentLabelAtPoint, getSegmentLabelPoint} from "../map/SegmentLabelHitTest";
+import {getSegmentLabelAtScreenPoint, getSegmentLabelPoint, SEGMENT_LABEL, segmentLabelText, segmentLabelWidth} from "../map/SegmentLabelHitTest";
 import {prepareMapWorkerInput} from "../map/MapWorkerInput";
+import {readMapTheme, type MapTheme} from "../map/MapTheme";
 
 type MapZone = {a: Point; b: Point};
 type Mode = "segments" | "zones" | "goto" | "pan" | "line" | "rectangle";
+type Marker = "robot" | "charger" | "target" | "obstacle" | "segment";
 const props = defineProps<{
     map: RawMapData;
     paletteMode: "light" | "dark";
@@ -32,6 +34,9 @@ const emit = defineEmits<{
     "entity-updated": [index: number, points: number[]];
 }>();
 
+const DRAW_MODES: Mode[] = ["zones", "rectangle", "line"];
+const ZONE_DELETE_RADIUS = 14;
+
 const canvas = ref<HTMLCanvasElement>();
 const layers = new MapLayerManager();
 const viewport = new MapViewport();
@@ -39,24 +44,48 @@ const gestures = new MapGestures();
 let observer: ResizeObserver | undefined;
 let layerUpdate = Promise.resolve();
 let disposed = false;
+let frame = 0;
+let theme: MapTheme | undefined;
 let draggedEntity: {index: number; start: Point; points: number[]} | undefined;
-type Marker = "robot" | "charger" | "target" | "obstacle" | "segment";
+const carpetPatterns = new Map<string, CanvasPattern>();
+
+/** Colors come from CSS custom properties so the map follows the same tokens as the rest of the UI. */
+function colors(): MapTheme {
+    if (!theme || theme.mode !== props.paletteMode) theme = readMapTheme(props.paletteMode);
+    return theme;
+}
+
+/** Coalesces redraws into one per animation frame; pointer events can fire far more often than the screen refreshes. */
+function scheduleDraw() {
+    if (frame || disposed) return;
+    frame = requestAnimationFrame(() => {
+        frame = 0;
+        draw();
+    });
+}
+
+function context(): CanvasRenderingContext2D | null | undefined {
+    return canvas.value?.getContext("2d");
+}
+
+function toCssPoint(world: Point): Point {
+    const point = viewport.toCanvasPoint(world);
+    return {x: point.x / viewport.dpr, y: point.y / viewport.dpr};
+}
 
 function drawMarker(ctx: CanvasRenderingContext2D, kind: Marker, x: number, y: number, options: {angle?: number; label?: string; selected?: boolean} = {}) {
+    const {accent, surface, text, obstacle} = colors();
     const position = viewport.toCanvasPoint({x, y});
-    const dark = props.paletteMode === "dark";
-    const accent = dark ? "#86cba2" : "#246e53";
-    const surface = dark ? "#1d2d26" : "#ffffff";
-    const text = dark ? "#edf5ed" : "#19352c";
     ctx.save();
     ctx.setTransform(viewport.dpr, 0, 0, viewport.dpr, position.x, position.y);
     ctx.lineWidth = 2;
     if (kind === "segment") {
         const label = options.label ?? "";
-        ctx.font = "700 11px Manrope, sans-serif";
-        const width = Math.max(28, Math.min(92, ctx.measureText(label).width + 17));
+        ctx.font = SEGMENT_LABEL.font;
+        const width = segmentLabelWidth(ctx.measureText(label).width);
+        const height = SEGMENT_LABEL.height;
         ctx.beginPath();
-        ctx.roundRect(-width / 2, -13, width, 26, 13);
+        ctx.roundRect(-width / 2, -height / 2, width, height, height / 2);
         ctx.fillStyle = options.selected ? accent : surface;
         ctx.strokeStyle = accent;
         ctx.fill();
@@ -99,15 +128,16 @@ function drawMarker(ctx: CanvasRenderingContext2D, kind: Marker, x: number, y: n
         ctx.lineTo(2, -3);
         ctx.stroke();
     } else {
+        const color = kind === "obstacle" ? obstacle : accent;
         ctx.beginPath();
         ctx.arc(0, 0, kind === "target" ? 10 : 7, 0, Math.PI * 2);
         ctx.fillStyle = surface;
-        ctx.strokeStyle = kind === "obstacle" ? "#bd8450" : accent;
+        ctx.strokeStyle = color;
         ctx.fill();
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(0, 0, kind === "target" ? 3 : 2, 0, Math.PI * 2);
-        ctx.fillStyle = kind === "obstacle" ? "#bd8450" : accent;
+        ctx.fillStyle = color;
         ctx.fill();
     }
     ctx.restore();
@@ -117,13 +147,13 @@ function mapPoint(screen: Point): Point {
     return viewport.toMapPoint(screen, props.map);
 }
 
-function eventPoint(event: PointerEvent): Point {
+function eventPoint(event: PointerEvent | WheelEvent): Point {
     const rect = canvas.value!.getBoundingClientRect();
     return {x: event.clientX - rect.left, y: event.clientY - rect.top};
 }
 
-function fitMap() {
-    viewport.fit(props.map);
+function canvasCenter(): Point {
+    return {x: (canvas.value?.clientWidth ?? 0) / 2, y: (canvas.value?.clientHeight ?? 0) / 2};
 }
 
 function resize() {
@@ -141,7 +171,6 @@ function resize() {
 }
 
 function polygonPath(ctx: CanvasRenderingContext2D, entity: RawMapEntity) {
-    if (entity.points.length < 4) return;
     const unit = props.map.pixelSize;
     ctx.beginPath();
     ctx.moveTo(entity.points[0] / unit, entity.points[1] / unit);
@@ -157,18 +186,18 @@ function polygon(ctx: CanvasRenderingContext2D, entity: RawMapEntity) {
     ctx.stroke();
 }
 
-const carpetPatterns = new Map<string, CanvasPattern>();
-function drawCarpets(ctx: CanvasRenderingContext2D) {
-    const dark = props.paletteMode === "dark";
-    let pattern = carpetPatterns.get(props.paletteMode);
+function carpetPattern(ctx: CanvasRenderingContext2D): CanvasPattern {
+    const {carpetFill, carpetLine} = colors();
+    const key = `${carpetFill}|${carpetLine}`;
+    let pattern = carpetPatterns.get(key);
     if (!pattern) {
         const tile = document.createElement("canvas");
         tile.width = 8;
         tile.height = 8;
         const tileContext = tile.getContext("2d")!;
-        tileContext.fillStyle = dark ? "#5b5643" : "#e7ddc7";
+        tileContext.fillStyle = carpetFill;
         tileContext.fillRect(0, 0, 8, 8);
-        tileContext.strokeStyle = dark ? "#8f876b" : "#c9b890";
+        tileContext.strokeStyle = carpetLine;
         tileContext.lineWidth = 1;
         tileContext.beginPath();
         tileContext.moveTo(-2, 8);
@@ -177,29 +206,32 @@ function drawCarpets(ctx: CanvasRenderingContext2D) {
         tileContext.lineTo(10, 2);
         tileContext.stroke();
         pattern = ctx.createPattern(tile, "repeat")!;
-        carpetPatterns.set(props.paletteMode, pattern);
+        carpetPatterns.set(key, pattern);
     }
+    return pattern;
+}
+
+function drawCarpets(ctx: CanvasRenderingContext2D) {
+    const pattern = carpetPattern(ctx);
     for (const entity of props.map.entities) {
         if (entity.type !== RawMapEntityType.Carpet || entity.points.length < 6) continue;
         polygonPath(ctx, entity);
         ctx.fillStyle = pattern;
         ctx.fill();
-        ctx.strokeStyle = dark ? "#ab9b70" : "#ae996b";
+        ctx.strokeStyle = colors().carpetBorder;
         ctx.lineWidth = Math.max(1, viewport.dpr / viewport.scale);
         ctx.stroke();
     }
 }
 
 function drawEntities(ctx: CanvasRenderingContext2D) {
-    const dark = props.paletteMode === "dark";
+    const palette = colors();
     for (const entity of props.map.entities) {
-        const x = entity.points[0] / props.map.pixelSize;
-        const y = entity.points[1] / props.map.pixelSize;
         ctx.lineWidth = props.coverage && entity.type === RawMapEntityType.Path ? 5 : 1.5;
         switch (entity.type) {
             case RawMapEntityType.Path:
             case RawMapEntityType.PredictedPath:
-                ctx.strokeStyle = dark ? "#9ad1a4" : "#65b386";
+                ctx.strokeStyle = palette.path;
                 ctx.setLineDash(entity.type === RawMapEntityType.PredictedPath ? [3, 3] : []);
                 polygon(ctx, entity);
                 ctx.setLineDash([]);
@@ -207,23 +239,23 @@ function drawEntities(ctx: CanvasRenderingContext2D) {
             case RawMapEntityType.NoGoArea:
             case RawMapEntityType.NoMopArea:
             case RawMapEntityType.VirtualWall:
-                ctx.strokeStyle = entity.type === RawMapEntityType.NoMopArea ? "#bf934a" : "#c96b67";
+                ctx.strokeStyle = entity.type === RawMapEntityType.NoMopArea ? palette.noMop : palette.noGo;
                 ctx.lineWidth = 2;
                 polygon(ctx, entity);
                 break;
             case RawMapEntityType.Threshold:
             case RawMapEntityType.Curtain:
             case RawMapEntityType.Ramp:
-                ctx.strokeStyle = dark ? "#a7c7b8" : "#729a88";
+                ctx.strokeStyle = palette.structure;
                 ctx.lineWidth = 2;
                 polygon(ctx, entity);
                 break;
             case RawMapEntityType.ActiveZone:
-                ctx.strokeStyle = dark ? "#86cba2" : "#246e53";
+                ctx.strokeStyle = palette.accent;
                 polygon(ctx, entity);
                 break;
             case RawMapEntityType.Obstacle:
-                drawMarker(ctx, "obstacle", x, y);
+                drawMarker(ctx, "obstacle", entity.points[0] / props.map.pixelSize, entity.points[1] / props.map.pixelSize);
                 break;
         }
     }
@@ -233,14 +265,13 @@ function drawSegmentLabels(ctx: CanvasRenderingContext2D) {
     for (const layer of props.map.layers) {
         if (layer.type !== RawMapLayerType.Segment || !layer.metaData.segmentId) continue;
         const {x, y} = getSegmentLabelPoint(layer);
-        const selected = props.selectedSegmentIds.includes(layer.metaData.segmentId);
-        const label = layer.metaData.name || layer.metaData.segmentId;
-        drawMarker(ctx, "segment", x, y, {label, selected});
+        drawMarker(ctx, "segment", x, y, {label: segmentLabelText(layer), selected: props.selectedSegmentIds.includes(layer.metaData.segmentId)});
     }
 }
 
 function drawForegroundIcons(ctx: CanvasRenderingContext2D) {
-    for (const type of [RawMapEntityType.GoToTarget, RawMapEntityType.ChargerLocation, RawMapEntityType.RobotPosition]) {
+    const order = [RawMapEntityType.GoToTarget, RawMapEntityType.ChargerLocation, RawMapEntityType.RobotPosition];
+    for (const type of order) {
         for (const entity of props.map.entities) {
             if (entity.type !== type) continue;
             const x = entity.points[0] / props.map.pixelSize;
@@ -252,56 +283,66 @@ function drawForegroundIcons(ctx: CanvasRenderingContext2D) {
     }
 }
 
+/** Position of a zone's remove button in CSS pixels, kept inside the canvas. */
 function zoneDeletePoint(zone: MapZone): Point {
-    const topRight = viewport.toCanvasPoint({x: zone.b.x, y: zone.a.y});
+    const topRight = toCssPoint({x: zone.b.x, y: zone.a.y});
     const width = canvas.value?.clientWidth ?? viewport.width / viewport.dpr;
     const height = canvas.value?.clientHeight ?? viewport.height / viewport.dpr;
+    const margin = ZONE_DELETE_RADIUS + 4;
     return {
-        x: Math.max(18, Math.min(width - 18, topRight.x / viewport.dpr - 14)),
-        y: Math.max(18, Math.min(height - 18, topRight.y / viewport.dpr + 14))
+        x: Math.max(margin, Math.min(width - margin, topRight.x - ZONE_DELETE_RADIUS)),
+        y: Math.max(margin, Math.min(height - margin, topRight.y + ZONE_DELETE_RADIUS))
     };
 }
 
+function drawZoneDeleteButton(ctx: CanvasRenderingContext2D, zone: MapZone) {
+    const {accent, surface} = colors();
+    const point = zoneDeletePoint(zone);
+    ctx.save();
+    ctx.setTransform(viewport.dpr, 0, 0, viewport.dpr, point.x * viewport.dpr, point.y * viewport.dpr);
+    ctx.beginPath();
+    ctx.arc(0, 0, ZONE_DELETE_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = surface;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-4, -4);
+    ctx.lineTo(4, 4);
+    ctx.moveTo(4, -4);
+    ctx.lineTo(-4, 4);
+    ctx.stroke();
+    ctx.restore();
+}
+
 function drawInteractionOverlays(ctx: CanvasRenderingContext2D) {
-    const dark = props.paletteMode === "dark";
-    ctx.strokeStyle = dark ? "#86cba2" : "#246e53";
-    ctx.fillStyle = dark ? "rgba(134, 203, 162, .20)" : "rgba(36, 110, 83, .16)";
+    const {accent, zoneFill, editLine} = colors();
+    ctx.strokeStyle = accent;
+    ctx.fillStyle = zoneFill;
     ctx.lineWidth = 2 * viewport.dpr / viewport.scale;
     for (const zone of props.zones) {
         ctx.fillRect(zone.a.x, zone.a.y, zone.b.x - zone.a.x, zone.b.y - zone.a.y);
         ctx.strokeRect(zone.a.x, zone.a.y, zone.b.x - zone.a.x, zone.b.y - zone.a.y);
-        if (props.mode === "zones") {
-            const point = zoneDeletePoint(zone);
-            ctx.save();
-            ctx.setTransform(viewport.dpr, 0, 0, viewport.dpr, point.x * viewport.dpr, point.y * viewport.dpr);
-            ctx.beginPath();
-            ctx.arc(0, 0, 14, 0, Math.PI * 2);
-            ctx.fillStyle = dark ? "#1d2d26" : "#ffffff";
-            ctx.strokeStyle = dark ? "#86cba2" : "#246e53";
-            ctx.lineWidth = 2;
-            ctx.fill();
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(-4, -4);
-            ctx.lineTo(4, 4);
-            ctx.moveTo(4, -4);
-            ctx.lineTo(-4, 4);
-            ctx.stroke();
-            ctx.restore();
-        }
     }
+    if (props.mode === "zones") props.zones.forEach(zone => drawZoneDeleteButton(ctx, zone));
     const preview = gestures.preview;
-    if ((props.mode === "zones" || props.mode === "rectangle" || props.mode === "line") && preview) {
+    if (DRAW_MODES.includes(props.mode) && preview) {
         const a = mapPoint(preview.start);
         const b = mapPoint(preview.current);
-        if (props.mode === "line") {ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();}
-        else ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+        ctx.strokeStyle = accent;
+        if (props.mode === "line") {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+        } else {
+            ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+        }
     }
-    if (props.target) {
-        drawMarker(ctx, "target", props.target.x, props.target.y);
-    }
+    if (props.target) drawMarker(ctx, "target", props.target.x, props.target.y);
     if (props.editLine) {
-        ctx.strokeStyle = "#f7a844";
+        ctx.strokeStyle = editLine;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(props.editLine.a.x, props.editLine.a.y);
@@ -310,9 +351,21 @@ function drawInteractionOverlays(ctx: CanvasRenderingContext2D) {
     }
 }
 
+function drawActivationNotice(ctx: CanvasRenderingContext2D, element: HTMLCanvasElement) {
+    const {mode} = colors();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = mode === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(72, 72, 72, 0.5)";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `${24 * viewport.dpr}px Onest, sans-serif`;
+    ctx.fillText(translate("Activate Valetudo"), element.width - 32 * viewport.dpr, element.height - 80 * viewport.dpr);
+    ctx.font = `${14 * viewport.dpr}px Onest, sans-serif`;
+    ctx.fillText(translate("Go to Settings to activate Valetudo."), element.width - 32 * viewport.dpr, element.height - 56 * viewport.dpr);
+}
+
 function draw() {
     const element = canvas.value;
-    const ctx = element?.getContext("2d");
+    const ctx = context();
     if (!element || !ctx || !viewport.initialized) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, element.width, element.height);
@@ -325,16 +378,7 @@ function draw() {
     if (!props.coverage) drawSegmentLabels(ctx);
     drawForegroundIcons(ctx);
     if (!props.coverage) drawInteractionOverlays(ctx);
-    if (aprilFools.value && !activated.value) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = props.paletteMode === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(72, 72, 72, 0.5)";
-        ctx.textAlign = "right";
-        ctx.textBaseline = "alphabetic";
-        ctx.font = `${24 * viewport.dpr}px IBM Plex Sans, sans-serif`;
-        ctx.fillText(translate("Activate Valetudo"), element.width - 32 * viewport.dpr, element.height - 80 * viewport.dpr);
-        ctx.font = `${14 * viewport.dpr}px IBM Plex Sans, sans-serif`;
-        ctx.fillText(translate("Go to Settings to activate Valetudo."), element.width - 32 * viewport.dpr, element.height - 56 * viewport.dpr);
-    }
+    if (aprilFools.value && !activated.value) drawActivationNotice(ctx, element);
 }
 
 function renderLayers() {
@@ -343,44 +387,64 @@ function renderLayers() {
         const input = prepareMapWorkerInput(props.map, props.selectedSegmentIds);
         layers.setSelectedSegmentIds(input.selectedSegmentIds);
         await layers.draw(input.map, props.paletteMode);
-        if (!disposed) draw();
+        scheduleDraw();
     }).catch(() => { /* A later map update can retry rendering. */ });
+}
+
+function zoomBy(factor: number, at: Point = canvasCenter()) {
+    viewport.zoom(factor, at);
+    scheduleDraw();
 }
 
 function onWheel(event: WheelEvent) {
     event.preventDefault();
-    const rect = canvas.value!.getBoundingClientRect();
-    viewport.zoom(event.deltaY < 0 ? 1.15 : 1 / 1.15, {x: event.clientX - rect.left, y: event.clientY - rect.top});
-    draw();
+    zoomBy(event.deltaY < 0 ? 1.15 : 1 / 1.15, eventPoint(event));
 }
 
-function zoomIn() {
-    if (!canvas.value) return;
-    viewport.zoom(1.2, {x: canvas.value.clientWidth / 2, y: canvas.value.clientHeight / 2});
-    draw();
-}
+defineExpose({
+    zoomIn: () => zoomBy(1.2),
+    zoomOut: () => zoomBy(1 / 1.2),
+    fitMap: () => {
+        resize();
+        viewport.fit(props.map);
+        draw();
+    }
+});
 
-function zoomOut() {
-    if (!canvas.value) return;
-    viewport.zoom(1 / 1.2, {x: canvas.value.clientWidth / 2, y: canvas.value.clientHeight / 2});
-    draw();
-}
-
-defineExpose({zoomIn, zoomOut, fitMap: () => {resize(); fitMap(); draw();}});
+const keyActions: Record<string, () => void> = {
+    "+": () => viewport.zoom(1.15, canvasCenter()),
+    "=": () => viewport.zoom(1.15, canvasCenter()),
+    "-": () => viewport.zoom(1 / 1.15, canvasCenter()),
+    ArrowLeft: () => viewport.pan({x: 30, y: 0}),
+    ArrowRight: () => viewport.pan({x: -30, y: 0}),
+    ArrowUp: () => viewport.pan({x: 0, y: 30}),
+    ArrowDown: () => viewport.pan({x: 0, y: -30}),
+    "0": () => viewport.fit(props.map)
+};
 
 function onKeyDown(event: KeyboardEvent) {
-    const element = canvas.value;
-    if (!element) return;
-    if (event.key === "+" || event.key === "=") viewport.zoom(1.15, {x: element.clientWidth / 2, y: element.clientHeight / 2});
-    else if (event.key === "-") viewport.zoom(1 / 1.15, {x: element.clientWidth / 2, y: element.clientHeight / 2});
-    else if (event.key === "ArrowLeft") viewport.pan({x: 30, y: 0});
-    else if (event.key === "ArrowRight") viewport.pan({x: -30, y: 0});
-    else if (event.key === "ArrowUp") viewport.pan({x: 0, y: 30});
-    else if (event.key === "ArrowDown") viewport.pan({x: 0, y: -30});
-    else if (event.key === "0") fitMap();
-    else return;
+    const action = keyActions[event.key];
+    if (!action || !canvas.value) return;
+    action();
     event.preventDefault();
-    draw();
+    scheduleDraw();
+}
+
+function entityBounds(points: number[]) {
+    const xs = points.filter((_, index) => index % 2 === 0);
+    const ys = points.filter((_, index) => index % 2 === 1);
+    return {minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys)};
+}
+
+function findEditableEntity(world: Point): number {
+    const entities = props.editableEntities ?? [];
+    const tolerance = 12 * viewport.worldUnitsPerCssPixel;
+    const unit = props.map.pixelSize;
+    for (let index = entities.length - 1; index >= 0; index--) {
+        const box = entityBounds(entities[index].points);
+        if (world.x >= box.minX / unit - tolerance && world.x <= box.maxX / unit + tolerance && world.y >= box.minY / unit - tolerance && world.y <= box.maxY / unit + tolerance) return index;
+    }
+    return -1;
 }
 
 function onPointerDown(event: PointerEvent) {
@@ -389,21 +453,25 @@ function onPointerDown(event: PointerEvent) {
     gestures.startPointer(event.pointerId, point);
     if (props.mode === "pan" && props.editableEntities?.length && gestures.pointerCount === 1) {
         const world = mapPoint(point);
-        const tolerance = 12 * viewport.worldUnitsPerCssPixel;
-        for (let index = props.editableEntities.length - 1; index >= 0; index--) {
-            const entity = props.editableEntities[index];
-            const xs = entity.points.filter((_, coordinate) => coordinate % 2 === 0).map(value => value / props.map.pixelSize);
-            const ys = entity.points.filter((_, coordinate) => coordinate % 2 === 1).map(value => value / props.map.pixelSize);
-            if (world.x >= Math.min(...xs) - tolerance && world.x <= Math.max(...xs) + tolerance && world.y >= Math.min(...ys) - tolerance && world.y <= Math.max(...ys) + tolerance) {
-                draggedEntity = {index, start: world, points: [...entity.points]};
-                break;
-            }
-        }
+        const index = findEditableEntity(world);
+        if (index >= 0) draggedEntity = {index, start: world, points: [...props.editableEntities[index].points]};
     }
-    if (gestures.pointerCount === 2) {
-        if (draggedEntity) emit("entity-updated", draggedEntity.index, draggedEntity.points);
+    if (gestures.pointerCount === 2 && draggedEntity) {
+        // A second finger turns the gesture into a pinch; put the dragged entity back.
+        emit("entity-updated", draggedEntity.index, draggedEntity.points);
         draggedEntity = undefined;
     }
+}
+
+function dragEntity(point: Point) {
+    if (!draggedEntity) return;
+    const current = mapPoint(point);
+    const unit = props.map.pixelSize;
+    const deltaX = Math.round((current.x - draggedEntity.start.x) * unit);
+    const deltaY = Math.round((current.y - draggedEntity.start.y) * unit);
+    const points = draggedEntity.points.map((value, index) => value + (index % 2 ? deltaY : deltaX));
+    const box = entityBounds(points);
+    if (box.minX >= 0 && box.maxX <= props.map.size.x && box.minY >= 0 && box.maxY <= props.map.size.y) emit("entity-updated", draggedEntity.index, points);
 }
 
 function onPointerMove(event: PointerEvent) {
@@ -413,21 +481,29 @@ function onPointerMove(event: PointerEvent) {
     if (gesture.kind === "pinch") {
         viewport.pan(gesture.pan);
         viewport.zoom(gesture.factor, gesture.center);
-    } else {
-        if (draggedEntity) {
-            const current = mapPoint(point);
-            const unit = props.map.pixelSize;
-            const deltaX = Math.round((current.x - draggedEntity.start.x) * unit);
-            const deltaY = Math.round((current.y - draggedEntity.start.y) * unit);
-            const points = draggedEntity.points.map((value, index) => value + (index % 2 ? deltaY : deltaX));
-            const xs = points.filter((_, index) => index % 2 === 0);
-            const ys = points.filter((_, index) => index % 2 === 1);
-            if (Math.min(...xs) >= 0 && Math.max(...xs) <= props.map.size.x && Math.min(...ys) >= 0 && Math.max(...ys) <= props.map.size.y) emit("entity-updated", draggedEntity.index, points);
-        } else if (!(["zones", "rectangle", "line"].includes(props.mode) && !gesture.afterPinch)) {
-            viewport.pan({x: point.x - gesture.previous.x, y: point.y - gesture.previous.y});
-        }
+    } else if (draggedEntity) {
+        dragEntity(point);
+    } else if (!DRAW_MODES.includes(props.mode) || gesture.afterPinch) {
+        viewport.pan({x: point.x - gesture.previous.x, y: point.y - gesture.previous.y});
     }
-    draw();
+    scheduleDraw();
+}
+
+function hitZoneDeleteButton(point: Point): number {
+    for (let index = props.zones.length - 1; index >= 0; index--) {
+        const button = zoneDeletePoint(props.zones[index]);
+        if ((point.x - button.x) ** 2 + (point.y - button.y) ** 2 <= (ZONE_DELETE_RADIUS + 4) ** 2) return index;
+    }
+    return -1;
+}
+
+function segmentAt(point: Point): string | null {
+    const ctx = context();
+    if (ctx) ctx.font = SEGMENT_LABEL.font;
+    const label = getSegmentLabelAtScreenPoint(props.map.layers, point, toCssPoint, text => ctx?.measureText(text).width ?? 0);
+    if (label) return label;
+    const world = viewport.toWorldPoint(point);
+    return layers.getIntersectingSegment(world.x, world.y);
 }
 
 function onPointerUp(event: PointerEvent, cancelled = false) {
@@ -435,55 +511,53 @@ function onPointerUp(event: PointerEvent, cancelled = false) {
     const gesture = gestures.endPointer(event.pointerId, point, cancelled);
     if (!gesture) return;
     if (cancelled && draggedEntity) emit("entity-updated", draggedEntity.index, draggedEntity.points);
-    if (!cancelled && !draggedEntity && !gesture.afterPinch && gestures.pointerCount === 0) {
-        if (gesture.tap && props.mode === "zones") {
-            for (let index = props.zones.length - 1; index >= 0; index--) {
-                const deletePoint = zoneDeletePoint(props.zones[index]);
-                if ((point.x - deletePoint.x) ** 2 + (point.y - deletePoint.y) ** 2 <= 18 ** 2) {
-                    emit("zone-remove", index);
-                    draggedEntity = undefined;
-                    draw();
-                    return;
-                }
-            }
-        }
-        if (["zones", "rectangle", "line"].includes(props.mode) && gesture.moved > 8) {
-            const a = mapPoint(gesture.start);
-            const b = mapPoint(point);
-            const shape = {
-                a: {x: Math.min(a.x, b.x), y: Math.min(a.y, b.y)},
-                b: {x: Math.max(a.x, b.x), y: Math.max(a.y, b.y)}
-            };
-            if (props.mode === "zones") emit("zone-created", shape);
-            else emit("shape-created", props.mode === "line" ? {a, b} : shape);
-        } else if (gesture.tap && props.mode === "segments") {
-            const p = viewport.toWorldPoint(point);
-            const ctx = canvas.value?.getContext("2d");
-            if (ctx) ctx.font = "6px IBM Plex Sans, sans-serif";
-            const labelId = getSegmentLabelAtPoint(props.map.layers, p, label => ctx?.measureText(label).width ?? 0);
-            const id = labelId ?? layers.getIntersectingSegment(p.x, p.y);
-            if (id) emit("segment-click", id);
-        } else if (gesture.tap && props.mode === "goto") {
-            emit("point-selected", mapPoint(point));
+    if (!cancelled && !draggedEntity && !gesture.afterPinch && gestures.pointerCount === 0) handleGestureEnd(point, gesture.tap, gesture.start, gesture.moved);
+    draggedEntity = undefined;
+    scheduleDraw();
+}
+
+function handleGestureEnd(point: Point, tap: boolean, start: Point, moved: number) {
+    if (tap && props.mode === "zones") {
+        const index = hitZoneDeleteButton(point);
+        if (index >= 0) {
+            emit("zone-remove", index);
+            return;
         }
     }
-    draggedEntity = undefined;
-    draw();
+    if (DRAW_MODES.includes(props.mode) && moved > 8) {
+        const a = mapPoint(start);
+        const b = mapPoint(point);
+        const shape = {
+            a: {x: Math.min(a.x, b.x), y: Math.min(a.y, b.y)},
+            b: {x: Math.max(a.x, b.x), y: Math.max(a.y, b.y)}
+        };
+        if (props.mode === "zones") emit("zone-created", shape);
+        else emit("shape-created", props.mode === "line" ? {a, b} : shape);
+    } else if (tap && props.mode === "segments") {
+        const id = segmentAt(point);
+        if (id) emit("segment-click", id);
+    } else if (tap && props.mode === "goto") {
+        emit("point-selected", mapPoint(point));
+    }
 }
 
 watch(() => [props.map.metaData.nonce, props.paletteMode, props.selectedSegmentIds.join("|")], renderLayers);
-watch(() => props.map.entities, draw, {deep: true});
-watch(() => [props.zones, props.target, props.mode, props.editLine], draw);
-watch([aprilFools, activated], draw);
-watch(i18n.global.locale, draw);
+// Map data is markRaw and replaced wholesale, so a reference check is enough; editable entities are small and edited in place.
+watch(() => props.map.entities, scheduleDraw);
+watch(() => props.editableEntities, scheduleDraw, {deep: true});
+watch(() => [props.zones, props.target, props.mode, props.editLine, props.coverage], scheduleDraw);
+watch([aprilFools, activated, locale], scheduleDraw);
 onMounted(() => {
     observer = new ResizeObserver(resize);
     observer.observe(canvas.value!);
     resize();
     renderLayers();
+    // Labels are measured with web fonts; redraw once they are available.
+    void document.fonts?.ready.then(scheduleDraw);
 });
 onBeforeUnmount(() => {
     disposed = true;
+    if (frame) cancelAnimationFrame(frame);
     observer?.disconnect();
     layers.dispose();
 });

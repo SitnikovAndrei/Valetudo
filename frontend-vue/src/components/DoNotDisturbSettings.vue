@@ -10,6 +10,7 @@ import {fetchDoNotDisturbConfiguration, sendDoNotDisturbConfiguration} from "../
 import SettingsSection from "./SettingsSection.vue";
 import SettingRow from "./SettingRow.vue";
 import AsyncState from "./AsyncState.vue";
+import TimeInput from "./TimeInput.vue";
 
 const queryClient = useQueryClient();
 const dnd = useQuery({queryKey: ["dndConfiguration"], queryFn: fetchDoNotDisturbConfiguration});
@@ -40,8 +41,8 @@ function apply() {
             <SettingRow :name='$t("Enabled")'><Checkbox v-model="draft.enabled" binary :aria-label='$t("Do not disturb")' /></SettingRow>
             <SettingRow :name='$t("Quiet hours")'>
                 <div class="flex flex-wrap gap-3">
-                    <label class="flex flex-col gap-1 text-sm">{{ $t("Start") }}<input v-model="start" type="time" :disabled="!draft.enabled" class="rounded-lg border p-2" style="background: var(--app-surface); border-color: var(--app-border)" /></label>
-                    <label class="flex flex-col gap-1 text-sm">{{ $t("End") }}<input v-model="end" type="time" :disabled="!draft.enabled" class="rounded-lg border p-2" style="background: var(--app-surface); border-color: var(--app-border)" /></label>
+                    <label class="flex flex-col gap-1 text-xs muted">{{ $t("Start") }}<TimeInput v-model="start" :disabled="!draft.enabled" :label='$t("Start")' /></label>
+                    <label class="flex flex-col gap-1 text-xs muted">{{ $t("End") }}<TimeInput v-model="end" :disabled="!draft.enabled" :label='$t("End")' /></label>
                 </div>
             </SettingRow>
             <div class="mt-4 flex justify-end"><Button :label='$t("Apply")' :loading="save.isPending.value" @click="apply" /></div>

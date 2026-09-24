@@ -1,3 +1,4 @@
+import {markRaw} from "vue";
 import {RawMapData} from "./RawMapData";
 
 export function preprocessMap(data : RawMapData) : RawMapData {
@@ -22,5 +23,6 @@ export function preprocessMap(data : RawMapData) : RawMapData {
         });
     }
 
-    return data;
+    // The map is large and never mutated in place; keep Vue from wrapping it in deep proxies.
+    return markRaw(data);
 }

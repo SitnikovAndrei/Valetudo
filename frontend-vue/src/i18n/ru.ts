@@ -881,4 +881,8 @@ export const ru: Record<string, string> = {
     "To point": "К точке",
     "Room {id}": "Комната {id}",
     "Enter coordinates": "Ввести координаты",
+    "Hours": "Часы",
+    "Minutes": "Минуты",
+    "Select a zone": "Выделите зону",
+    "Unable to load current statistics.": "Не удалось загрузить текущую статистику.",
 };

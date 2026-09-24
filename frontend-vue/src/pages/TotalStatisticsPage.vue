@@ -9,6 +9,7 @@ import {fetchTotalStatistics} from "../api/client";
 import {statisticsAchievements} from "../robot/res/StatisticsAchievements";
 import {translate} from "../i18n";
 import {formatStatisticsValue} from "../statistics";
+import PageHeader from "../components/PageHeader.vue";
 
 const props = defineProps<{capabilities: Capability[]; information: ValetudoInformation}>();
 const supported = computed(() => props.capabilities.includes(Capability.TotalStatistics));
@@ -31,33 +32,35 @@ function label(type: ValetudoDataPoint["type"]): string {
 </script>
 
 <template>
-    <section>
-        <h1 class="mb-5 text-2xl font-bold">{{ $t("Total statistics") }}</h1>
-        <Message v-if="!supported" severity="warn">{{ $t("This robot does not report total statistics.") }}</Message>
-        <p v-else-if="statistics.isPending.value" role="status">{{ $t("Loading statistics…") }}</p>
-        <div v-else-if="statistics.isError.value" class="panel flex items-center gap-4">
-            <Message severity="error">{{ $t("Unable to load total statistics.") }}</Message>
-            <Button :label='$t("Retry")' @click="statistics.refetch()" />
-        </div>
-        <p v-else-if="!statistics.data.value?.length" class="panel muted">{{ $t("No statistics reported.") }}</p>
-        <div v-else class="grid gap-4 md:grid-cols-3">
-            <div v-for="point in sorted" :key="point.type" class="panel flex flex-col items-start">
-                <div class="mb-4 flex h-32 w-32 items-center justify-center self-center rounded-full border-[10px] text-center font-bold" :class="latest(point) ? 'border-amber-400 bg-blue-900 text-amber-300' : 'border-gray-600 bg-gray-800 text-gray-400'">{{ latest(point)?.title ? translate(latest(point)!.title) : '?' }}</div>
-                <p class="mb-3 text-sm">{{ latest(point)?.description ? translate(latest(point)!.description) : $t("No achievement yet") }}</p>
-                <p class="muted mb-2">{{ label(point.type) }}</p>
-                <p class="text-3xl font-bold">{{ formatStatisticsValue(point) }}</p>
-                <Button :label='$t("Achievement overview")' text class="mt-3" @click="selected = point" />
+    <div class="page">
+        <PageHeader :title="$t('Total statistics')" />
+        <section>
+            <Message v-if="!supported" severity="warn">{{ $t("This robot does not report total statistics.") }}</Message>
+            <p v-else-if="statistics.isPending.value" role="status">{{ $t("Loading statistics…") }}</p>
+            <div v-else-if="statistics.isError.value" class="panel flex items-center gap-4">
+                <Message severity="error">{{ $t("Unable to load total statistics.") }}</Message>
+                <Button :label='$t("Retry")' @click="statistics.refetch()" />
             </div>
-        </div>
-        <Dialog :visible="Boolean(selected)" modal :header="selected ? $t('Achievements for {category}', {category: label(selected.type)}) : ''" class="w-[min(95vw,55rem)]" @update:visible="selected = undefined">
-            <div v-if="selected" class="grid max-h-[70vh] gap-3 overflow-auto sm:grid-cols-3">
-                <div v-for="achievement in [...statisticsAchievements[selected.type]].reverse()" :key="achievement.value" class="rounded-xl border p-4" style="border-color: var(--app-border)">
-                    <strong>{{ selected.value >= achievement.value ? translate(achievement.title) : '?' }}</strong>
-                    <p class="muted mt-2 text-sm">{{ selected.value >= achievement.value ? translate(achievement.description) : $t("Not yet achieved") }}</p>
-                    <p v-if="selected.value >= achievement.value" class="mt-3 text-sm">{{ $t("Achieved at") }} {{ formatStatisticsValue({...selected, value: achievement.value}) }}</p>
+            <p v-else-if="!statistics.data.value?.length" class="panel muted">{{ $t("No statistics reported.") }}</p>
+            <div v-else class="grid gap-4 md:grid-cols-3">
+                <div v-for="point in sorted" :key="point.type" class="panel flex flex-col items-start">
+                    <div class="mb-4 flex h-32 w-32 items-center justify-center self-center rounded-full border-[10px] text-center font-bold" :class="latest(point) ? 'border-amber-400 bg-blue-900 text-amber-300' : 'border-gray-600 bg-gray-800 text-gray-400'">{{ latest(point)?.title ? translate(latest(point)!.title) : '?' }}</div>
+                    <p class="mb-3 text-sm">{{ latest(point)?.description ? translate(latest(point)!.description) : $t("No achievement yet") }}</p>
+                    <p class="muted mb-2">{{ label(point.type) }}</p>
+                    <p class="text-3xl font-bold">{{ formatStatisticsValue(point) }}</p>
+                    <Button :label='$t("Achievement overview")' text class="mt-3" @click="selected = point" />
                 </div>
             </div>
-            <div class="mt-4 flex justify-end"><Button :label='$t("Close")' @click="selected = undefined" /></div>
-        </Dialog>
-    </section>
+            <Dialog :visible="Boolean(selected)" modal :header="selected ? $t('Achievements for {category}', {category: label(selected.type)}) : ''" class="w-[min(95vw,55rem)]" @update:visible="selected = undefined">
+                <div v-if="selected" class="grid max-h-[70vh] gap-3 overflow-auto sm:grid-cols-3">
+                    <div v-for="achievement in [...statisticsAchievements[selected.type]].reverse()" :key="achievement.value" class="rounded-xl border p-4" style="border-color: var(--app-border)">
+                        <strong>{{ selected.value >= achievement.value ? translate(achievement.title) : '?' }}</strong>
+                        <p class="muted mt-2 text-sm">{{ selected.value >= achievement.value ? translate(achievement.description) : $t("Not yet achieved") }}</p>
+                        <p v-if="selected.value >= achievement.value" class="mt-3 text-sm">{{ $t("Achieved at") }} {{ formatStatisticsValue({...selected, value: achievement.value}) }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end"><Button :label='$t("Close")' @click="selected = undefined" /></div>
+            </Dialog>
+        </section>
+    </div>
 </template>

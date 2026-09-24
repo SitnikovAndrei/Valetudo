@@ -1,0 +1,83 @@
+/*
+ * Design tokens. Text colors are checked against WCAG AA (4.5:1) on --app-surface and --app-surface-soft.
+ * The map canvas reads the --map-* tokens (see map/MapTheme.ts).
+ */
+:root {
+    color-scheme: light;
+    --font-body: "Onest", system-ui, sans-serif;
+    --font-heading: "Manrope", "Onest", system-ui, sans-serif;
+
+    --text-xs: 12px;
+    --text-sm: 13px;
+    --text-base: 14px;
+    --text-lg: 16px;
+    --text-xl: 20px;
+    --text-2xl: clamp(22px, 2.2vw, 28px);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 14px;
+
+    --app-bg: #e9ede8;
+    --app-stage: #f3f5f0;
+    --app-surface: #ffffff;
+    --app-surface-soft: #f7f9f5;
+    --app-surface-raised: #eef3ec;
+    --app-sidebar: #f9faf7;
+    --app-text: #19352c;
+    --app-secondary: #516359;
+    --app-muted: #5f7368;
+    --app-accent: #246e53;
+    --app-on-accent: #ffffff;
+    --app-accent-soft: #e1f1e7;
+    --app-border: #dfe7de;
+    --app-shadow: 0 22px 70px rgb(28 57 37 / 10%);
+
+    --status-paused-bg: #fff3dd;
+    --status-paused-text: #885915;
+    --status-paused-dot: #c68c3f;
+    --status-error-bg: #fbe8e7;
+    --status-error-text: #a33c3c;
+    --status-error-dot: #c34b4b;
+
+    --map-path: #65b386;
+    --map-no-go: #c96b67;
+    --map-no-mop: #bf934a;
+    --map-structure: #729a88;
+    --map-obstacle: #bd8450;
+    --map-zone-fill: rgb(36 110 83 / 16%);
+    --map-edit-line: #e8912c;
+    --map-carpet-fill: #e7ddc7;
+    --map-carpet-line: #c9b890;
+    --map-carpet-border: #ae996b;
+}
+
+:root.dark {
+    color-scheme: dark;
+    --app-bg: #101c19;
+    --app-stage: #15231e;
+    --app-surface: #1d2d26;
+    --app-surface-soft: #21332b;
+    --app-surface-raised: #2b4034;
+    --app-sidebar: #1a2922;
+    --app-text: #edf5ed;
+    --app-secondary: #c2d2c4;
+    --app-muted: #a9bbac;
+    --app-accent: #86cba2;
+    --app-on-accent: #10231b;
+    --app-accent-soft: #2c4a39;
+    --app-border: #365044;
+    --app-shadow: 0 22px 70px rgb(0 0 0 / 24%);
+
+    --status-paused-bg: #4f3e25;
+    --status-paused-text: #f0c77d;
+    --status-error-bg: #4d302d;
+    --status-error-text: #f5a9a5;
+
+    --map-path: #9ad1a4;
+    --map-structure: #a7c7b8;
+    --map-zone-fill: rgb(134 203 162 / 20%);
+    --map-carpet-fill: #5b5643;
+    --map-carpet-line: #8f876b;
+    --map-carpet-border: #ab9b70;
+}

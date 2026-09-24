@@ -7,6 +7,7 @@ import Select from "primevue/select";
 import {fetchValetudoLog, fetchValetudoLogLevel, sendValetudoLogLevel, subscribeToLogMessages} from "../api/client";
 import type {LogLevel} from "../api/types";
 import {valueLabel} from "../i18n/labels";
+import PageHeader from "../components/PageHeader.vue";
 
 const queryClient = useQueryClient();
 const log = useQuery({queryKey: ["valetudoLog"], queryFn: fetchValetudoLog, staleTime: Infinity});
@@ -27,15 +28,17 @@ function refresh() {
 </script>
 
 <template>
-    <section class="panel">
-        <h1 class="mb-5 text-2xl font-bold">{{ $t("Log") }}</h1>
-        <div class="mb-5 flex flex-wrap items-center gap-3">
-            <label class="flex flex-1 flex-col gap-1">{{ $t("Filter") }} <input v-model="filter" type="search" class="rounded-lg border p-2" style="background: var(--app-surface); border-color: var(--app-border)" /></label>
-            <label class="flex flex-col gap-1">{{ $t("Current level") }} <Select :model-value="level.data.value?.current" :options="(level.data.value?.presets ?? []).map(value => ({label: valueLabel(value), value}))" option-label="label" option-value="value" :disabled="level.isPending.value || changeLevel.isPending.value" @update:model-value="value => changeLevel.mutate({level: value as LogLevel})" /></label>
-            <Button :label='$t("Refresh")' :loading="log.isFetching.value" outlined @click="refresh" />
-        </div>
-        <p v-if="log.isPending.value" role="status">{{ $t("Loading log…") }}</p>
-        <Message v-else-if="log.isError.value || level.isError.value || changeLevel.isError.value" severity="error">{{ $t("Unable to load or change the log.") }}</Message>
-        <pre v-else class="max-h-[65vh] overflow-auto rounded-lg p-4 text-xs leading-relaxed" style="background: var(--app-bg)">{{ lines.join("\n") }}</pre>
-    </section>
+    <div class="page">
+        <PageHeader :title="$t('Log')" />
+        <section class="panel">
+            <div class="mb-5 flex flex-wrap items-center gap-3">
+                <label class="flex flex-1 flex-col gap-1">{{ $t("Filter") }} <input v-model="filter" type="search" class="rounded-lg border p-2" style="background: var(--app-surface); border-color: var(--app-border)" /></label>
+                <label class="flex flex-col gap-1">{{ $t("Current level") }} <Select :model-value="level.data.value?.current" :options="(level.data.value?.presets ?? []).map(value => ({label: valueLabel(value), value}))" option-label="label" option-value="value" :disabled="level.isPending.value || changeLevel.isPending.value" @update:model-value="value => changeLevel.mutate({level: value as LogLevel})" /></label>
+                <Button :label='$t("Refresh")' :loading="log.isFetching.value" outlined @click="refresh" />
+            </div>
+            <p v-if="log.isPending.value" role="status">{{ $t("Loading log…") }}</p>
+            <Message v-else-if="log.isError.value || level.isError.value || changeLevel.isError.value" severity="error">{{ $t("Unable to load or change the log.") }}</Message>
+            <pre v-else class="max-h-[65vh] overflow-auto rounded-lg p-4 text-xs leading-relaxed" style="background: var(--app-bg)">{{ lines.join("\n") }}</pre>
+        </section>
+    </div>
 </template>

@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import {RawMapLayerType, type RawMapData, type RawMapLayer} from "../api/RawMapData";
 import {getSegmentAtPoint} from "./SegmentLookup";
-import {getSegmentLabelAtPoint, getSegmentLabelPoint} from "./SegmentLabelHitTest";
+import {getSegmentLabelAtScreenPoint, getSegmentLabelPoint} from "./SegmentLabelHitTest";
 import {MapViewport} from "./MapViewport";
 
 const lookup = {
@@ -31,11 +31,14 @@ describe("segment selection", () => {
     });
 
     it("selects a visible room label before the segment underneath it", () => {
-        const point = {x: 11.1, y: 20.5};
-        expect(getSegmentAtPoint(lookup, point.x, point.y)).toBe("right");
-        expect(getSegmentLabelAtPoint([label], point, () => 20)).toBe("left");
-        expect(getSegmentLabelAtPoint([label], {x: 20, y: 27.5}, () => 20)).toBe("left");
-        expect(getSegmentLabelAtPoint([label], {x: 30, y: 30}, () => 20)).toBeNull();
+        // 10 CSS pixels per map pixel; the label for "left" is centered at (105, 205) and is 20 + 17 = 37 px wide.
+        const toScreen = (point: {x: number; y: number}) => ({x: point.x * 10, y: point.y * 10});
+        const measure = () => 20;
+        expect(getSegmentAtPoint(lookup, 11.1, 20.5)).toBe("right");
+        expect(getSegmentLabelAtScreenPoint([label], {x: 111, y: 205}, toScreen, measure)).toBe("left");
+        expect(getSegmentLabelAtScreenPoint([label], {x: 105 + 18, y: 205 + 12}, toScreen, measure)).toBe("left");
+        expect(getSegmentLabelAtScreenPoint([label], {x: 105 + 20, y: 205}, toScreen, measure)).toBeNull();
+        expect(getSegmentLabelAtScreenPoint([label], {x: 105, y: 205 + 14}, toScreen, measure)).toBeNull();
     });
 
     it("keeps the room marker on its own pixels when the average is in another room", () => {

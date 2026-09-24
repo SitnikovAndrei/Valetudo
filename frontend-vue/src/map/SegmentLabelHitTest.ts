@@ -1,6 +1,19 @@
 import {RawMapLayerType, type RawMapLayer} from "../api/RawMapData";
 import type {Point} from "./MapViewport";
 
+/** Room label pill geometry in CSS pixels, shared by the renderer and the hit test. */
+export const SEGMENT_LABEL = {
+    font: "700 11px Manrope, sans-serif",
+    height: 26,
+    minWidth: 28,
+    maxWidth: 92,
+    padding: 17
+} as const;
+
+export function segmentLabelWidth(textWidth: number): number {
+    return Math.max(SEGMENT_LABEL.minWidth, Math.min(SEGMENT_LABEL.maxWidth, textWidth + SEGMENT_LABEL.padding));
+}
+
 const labelPositions = new WeakMap<RawMapLayer, Point>();
 
 export function getSegmentLabelPoint(layer: RawMapLayer): Point {
@@ -23,19 +36,30 @@ export function getSegmentLabelPoint(layer: RawMapLayer): Point {
     return point;
 }
 
-export function getSegmentLabelAtPoint(layers: RawMapLayer[], point: Point, measureLabel: (label: string) => number): string | null {
+export function segmentLabelText(layer: RawMapLayer): string {
+    return layer.metaData.name || layer.metaData.segmentId || "";
+}
+
+/**
+ * Returns the segment whose label pill contains the pointer.
+ * @param screenPoint - pointer position in CSS pixels relative to the canvas
+ * @param toScreen - converts a map point to CSS pixels relative to the canvas
+ * @param measureText - text width in CSS pixels, measured with SEGMENT_LABEL.font
+ */
+export function getSegmentLabelAtScreenPoint(
+    layers: RawMapLayer[],
+    screenPoint: Point,
+    toScreen: (point: Point) => Point,
+    measureText: (label: string) => number
+): string | null {
     for (let index = layers.length - 1; index >= 0; index--) {
         const layer = layers[index];
         const id = layer.metaData.segmentId;
         if (layer.type !== RawMapLayerType.Segment || !id) continue;
 
-        const labelPoint = getSegmentLabelPoint(layer);
-        const dx = point.x - labelPoint.x;
-        const dy = point.y - labelPoint.y;
-        if (dx * dx + dy * dy <= 7 * 7) return id;
-
-        const label = layer.metaData.name || id;
-        if (Math.abs(dx) <= Math.min(measureLabel(label), 40) / 2 && Math.abs(dy - 7) <= 3) return id;
+        const center = toScreen(getSegmentLabelPoint(layer));
+        const halfWidth = segmentLabelWidth(measureText(segmentLabelText(layer))) / 2;
+        if (Math.abs(screenPoint.x - center.x) <= halfWidth && Math.abs(screenPoint.y - center.y) <= SEGMENT_LABEL.height / 2) return id;
     }
     return null;
 }

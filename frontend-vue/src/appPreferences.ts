@@ -4,7 +4,7 @@ import type {Language} from "./i18n";
 export type ThemeChoice = "system" | "light" | "dark";
 
 export interface AppPreferences {
-    language: Ref<Language>;
+    language: Readonly<Ref<Language>>;
     themeChoice: Readonly<Ref<ThemeChoice>>;
     setLanguage: (language: Language) => void;
     setTheme: (theme: ThemeChoice) => void;

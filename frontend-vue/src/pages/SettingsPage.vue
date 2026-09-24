@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import {computed, inject} from "vue";
+import {computed} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import {Capability} from "../api/types";
-import {fetchDuststreamingConfiguration} from "../api/client";
+import {duststreamConfigurationQuery} from "../api/queries";
 import {useQuery} from "@tanstack/vue-query";
-import Select from "primevue/select";
 import {useRobotAttributes} from "../composables/useRobotAttributes";
 import {translate} from "../i18n";
 import PageHeader from "../components/PageHeader.vue";
@@ -13,17 +12,16 @@ import SettingRow from "../components/SettingRow.vue";
 import AsyncState from "../components/AsyncState.vue";
 import PresetSettings from "../components/PresetSettings.vue";
 import DoNotDisturbSettings from "../components/DoNotDisturbSettings.vue";
-import {appPreferencesKey, type ThemeChoice} from "../appPreferences";
-import type {Language} from "../i18n";
+import PreferenceSelects from "../components/PreferenceSelects.vue";
+import AppIcon from "../components/AppIcon.vue";
 
 type Category = "cleaning" | "map" | "connectivity" | "robot" | "valetudo";
 type Link = {label: string; to: string; capability?: Capability; anyCapability?: Capability[]};
 const props = defineProps<{capabilities: Capability[]}>();
 const route = useRoute();
 const router = useRouter();
-const preferences = inject(appPreferencesKey);
 const {query: attributes} = useRobotAttributes();
-const duststream = useQuery({queryKey: ["duststreamConfiguration"], queryFn: fetchDuststreamingConfiguration, enabled: computed(() => props.capabilities.includes(Capability.Duststreaming))});
+const duststream = useQuery({...duststreamConfigurationQuery, enabled: computed(() => props.capabilities.includes(Capability.Duststreaming))});
 const categories = computed<{key: Category; label: string}[]>(() => [
     {key: "cleaning", label: translate("Cleaning")},
     {key: "map", label: translate("Map")},
@@ -68,6 +66,8 @@ const links = computed<Record<Exclude<Category, "cleaning">, Link[]>>(() => ({
         {label: translate("About"), to: "/valetudo/about"}
     ]
 }));
+const visibleLinks = computed(() => active.value === "cleaning" ? [] : links.value[active.value].filter(link =>
+    (!link.capability || props.capabilities.includes(link.capability)) && (!link.anyCapability || link.anyCapability.some(capability => props.capabilities.includes(capability)))));
 function select(category: Category) {void router.replace({path: "/options", query: category === "cleaning" ? {} : {section: category}});}
 </script>
 
@@ -84,20 +84,41 @@ function select(category: Category) {void router.replace({path: "/options", quer
                         <AsyncState v-if="hasPresets" :loading="attributes.isPending.value" :error="attributes.isError.value" :error-text='$t("Unable to load robot state.")' @retry="attributes.refetch()">
                             <PresetSettings :capabilities="capabilities" :attributes="attributes.data.value ?? []" />
                         </AsyncState>
-                        <SettingRow :name='$t("Timers")' :description='$t("Create and manage cleaning schedules")'><RouterLink class="nav-card" to="/valetudo/timers">{{ $t("Open") }} →</RouterLink></SettingRow>
+                        <SettingRow :name='$t("Timers")' :description='$t("Create and manage cleaning schedules")'><RouterLink class="link-button" to="/valetudo/timers">{{ $t("Open") }}<AppIcon name="chevron-right" /></RouterLink></SettingRow>
                     </SettingsSection>
                     <DoNotDisturbSettings v-if="capabilities.includes(Capability.DoNotDisturb)" />
                 </template>
                 <SettingsSection v-else :title="categories.find(category => category.key === active)?.label ?? ''">
                     <div class="settings-link-grid">
-                        <RouterLink v-for="link in links[active].filter(item => (!item.capability || capabilities.includes(item.capability)) && (!item.anyCapability || item.anyCapability.some(capability => capabilities.includes(capability))))" :key="link.to" class="nav-card" :to="link.to"><strong>{{ link.label }}</strong><span class="muted">→</span></RouterLink>
+                        <RouterLink v-for="link in visibleLinks" :key="link.to" class="nav-card" :to="link.to"><strong>{{ link.label }}</strong><AppIcon name="chevron-right" /></RouterLink>
                     </div>
                 </SettingsSection>
-                <SettingsSection v-if="active === 'valetudo' && preferences" class="settings-mobile-preferences" :title='$t("Preferences")'>
-                    <SettingRow :name='$t("Language")'><Select :model-value="preferences.language.value" :options="[{label: 'Русский', value: 'ru'}, {label: 'English', value: 'en'}]" option-label="label" option-value="value" :aria-label='$t("Language")' @update:model-value="preferences.setLanguage($event as Language)" /></SettingRow>
-                    <SettingRow :name='$t("Theme")'><Select :model-value="preferences.themeChoice.value" :options="[{label: $t('System'), value: 'system'}, {label: $t('Light'), value: 'light'}, {label: $t('Dark'), value: 'dark'}]" option-label="label" option-value="value" :aria-label='$t("Theme")' @update:model-value="preferences.setTheme($event as ThemeChoice)" /></SettingRow>
+                <SettingsSection v-if="active === 'valetudo'" class="settings-mobile-preferences" :title='$t("Preferences")'>
+                    <PreferenceSelects layout="rows" />
                 </SettingsSection>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.settings-page { max-width: 1050px; }
+.settings-layout { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; }
+.settings-categories { display: grid; align-content: start; gap: 4px; }
+.settings-categories button { min-height: 42px; padding: 8px 12px; border: 0; border-radius: 9px; background: transparent; color: var(--app-secondary); font-weight: 600; text-align: left; cursor: pointer; }
+.settings-categories button:hover, .settings-categories button[aria-current="page"] { background: var(--app-accent-soft); color: var(--app-accent); }
+.settings-main { display: grid; align-content: start; gap: 16px; min-width: 0; }
+.settings-link-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.settings-mobile-preferences { display: none; }
+
+@media (max-width: 1100px) {
+    .settings-layout { grid-template-columns: 150px minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+    .settings-layout { display: block; }
+    .settings-categories { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
+    .settings-categories button { font-size: var(--text-sm); text-align: center; }
+    .settings-link-grid { grid-template-columns: 1fr; }
+    .settings-mobile-preferences { display: block; }
+}
+</style>

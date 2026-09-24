@@ -1,137 +1,55 @@
 <script setup lang="ts">
-import {computed, onBeforeUnmount, provide, ref, watch} from "vue";
+import {computed, provide, ref, watch} from "vue";
 import {useQuery} from "@tanstack/vue-query";
-import {useRouter} from "vue-router";
+import {useRoute, useRouter} from "vue-router";
 import Button from "primevue/button";
 import Message from "primevue/message";
+import {usePrimeVue} from "@primevue/core/config";
 import {Capability} from "./api/types";
-import {fetchCapabilities, fetchDuststreamingConfiguration, fetchValetudoInformation, fetchWifiStatus} from "./api/client";
+import {capabilitiesQuery, valetudoInformationQuery, wifiStatusQuery} from "./api/queries";
 import AppNavigation from "./components/AppNavigation.vue";
 import EventsPanel from "./components/EventsPanel.vue";
+import PreferenceSelects from "./components/PreferenceSelects.vue";
 import WelcomeDialog from "./components/WelcomeDialog.vue";
-import Select from "primevue/select";
-import {usePrimeVue} from "@primevue/core/config";
-import {i18n, setLanguage, translate, type Language} from "./i18n";
+import AppIcon from "./components/AppIcon.vue";
+import {locale, setLanguage, translate} from "./i18n";
 import {primeLocale} from "./i18n/prime";
-import {appPreferencesKey, type ThemeChoice} from "./appPreferences";
+import {appPreferencesKey} from "./appPreferences";
+import {useTheme} from "./composables/useTheme";
 
-type PaletteMode = "light" | "dark";
-
+const route = useRoute();
 const router = useRouter();
 const prime = usePrimeVue();
-const language = i18n.global.locale;
-const media = window.matchMedia("(prefers-color-scheme: dark)");
-const saved = localStorage.getItem("palette-mode");
-const paletteMode = ref<PaletteMode>(saved === "light" || saved === "dark" ? saved : (media.matches ? "dark" : "light"));
-const usingSystemTheme = ref(saved !== "light" && saved !== "dark");
-const themeChoice = computed(() => usingSystemTheme.value ? "system" : paletteMode.value);
-const pageTitle = computed(() => {
-    const path = router.currentRoute.value.path;
-    if (path === "/") return translate("Map and controls");
-    if (path === "/options") return translate("Settings");
-    if (path.startsWith("/options/map_management")) return translate("Map");
-    if (path.startsWith("/options/connectivity")) return translate("Connectivity");
-    if (path.startsWith("/options/robot")) return translate("Robot");
-    if (path.startsWith("/options/valetudo")) return translate("Valetudo");
-    if (path.startsWith("/robot")) return translate("Robot");
-    if (path.startsWith("/valetudo/timers")) return translate("Timers");
-    if (path === "/valetudo/log") return translate("Log");
-    if (path === "/valetudo/updater") return translate("Updater");
-    if (path === "/valetudo/system_information") return translate("System information");
-    if (path === "/valetudo/ai") return translate("AI Assistant");
-    if (path === "/valetudo/help") return translate("Help");
-    if (path === "/valetudo/about") return translate("About");
-    return translate("Valetudo");
-});
-const parentPage = computed(() => {
-    const path = router.currentRoute.value.path;
-    const settingsGroups = [
-        {path: "/options/map_management", section: "map", label: "Map options"},
-        {path: "/options/connectivity", section: "connectivity", label: "Connectivity"},
-        {path: "/options/robot", section: "robot", label: "Robot options"},
-        {path: "/options/valetudo", section: "valetudo", label: "Valetudo options"}
-    ];
-    for (const group of settingsGroups) {
-        if (path === group.path) return {to: {path: "/options", query: {section: group.section}}, label: translate("Settings")};
-        if (path.startsWith(`${group.path}/`)) return {to: group.path, label: translate(group.label)};
-    }
-    if (["/robot/manual_control", "/robot/camera"].includes(path)) return {to: {path: "/options", query: {section: "robot"}}, label: translate("Settings")};
-    if (["/valetudo/updater", "/valetudo/system_information", "/valetudo/log", "/valetudo/ai", "/valetudo/help", "/valetudo/about"].includes(path)) return {to: {path: "/options", query: {section: "valetudo"}}, label: translate("Settings")};
-    return null;
-});
-const bypassProvisioning = ref(false);
+const {paletteMode, themeChoice, setTheme} = useTheme();
+provide(appPreferencesKey, {language: locale, themeChoice, setLanguage, setTheme});
 
-const capabilities = useQuery({queryKey: ["capabilities"], queryFn: fetchCapabilities, retry: 1});
-const information = useQuery({queryKey: ["valetudoInformation"], queryFn: fetchValetudoInformation, retry: 1});
-const duststream = useQuery({queryKey: ["duststreamConfiguration"], queryFn: fetchDuststreamingConfiguration, enabled: computed(() => capabilities.data.value?.includes(Capability.Duststreaming) === true)});
+const bypassProvisioning = ref(false);
+const capabilities = useQuery(capabilitiesQuery);
+const information = useQuery(valetudoInformationQuery);
 const wifiEnabled = computed(() => information.data.value?.embedded === true && capabilities.data.value?.includes(Capability.WifiConfiguration) === true && !bypassProvisioning.value);
-const wifi = useQuery({queryKey: ["wifiStatus"], queryFn: fetchWifiStatus, enabled: wifiEnabled, retry: 1});
+const wifi = useQuery({...wifiStatusQuery, enabled: wifiEnabled});
 const loading = computed(() => capabilities.isPending.value || information.isPending.value || (wifiEnabled.value && wifi.isPending.value));
 const failed = computed(() => capabilities.isError.value || information.isError.value || (wifiEnabled.value && wifi.isError.value));
+const ready = computed(() => !loading.value && !failed.value);
+const showChrome = computed(() => ready.value && !route.meta.bare);
+
+const pageTitle = computed(() => translate(route.meta.title ?? "Valetudo"));
+const parentPage = computed(() => route.meta.parent && {to: route.meta.parent.to, label: translate(route.meta.parent.label)});
 
 watch(() => wifi.data.value?.state, state => {
     if (state === "connected") {
         bypassProvisioning.value = true;
-        if (router.currentRoute.value.path === "/setup") {
-            void router.replace("/");
-        }
+        if (route.path === "/setup") void router.replace("/");
     } else if (state === "not_connected") {
         void router.replace("/setup");
     }
 }, {immediate: true});
 
-watch([() => router.currentRoute.value.path, capabilities.data, duststream.data], ([path, available, camera]) => {
-    if (!available) return;
-    const requirements: Record<string, Capability[]> = {
-        "/options/connectivity/wifi": [Capability.WifiConfiguration],
-        "/options/map_management/segments": [Capability.MapSegmentEdit, Capability.MapSegmentRename, Capability.MapSegmentMaterialControl],
-        "/options/map_management/virtual_restrictions": [Capability.CombinedVirtualRestrictions],
-        "/options/map_management/annotations": [Capability.MapAnnotations]
-    };
-    if (requirements[path] && !requirements[path].some(capability => available.includes(capability))) void router.replace("/");
-    if (["/robot/camera", "/options/map_management/spectator"].includes(path) && (!available.includes(Capability.Duststreaming) || camera?.enabled === false)) void router.replace("/");
+watch([() => route.meta.title, locale], ([title, language]) => {
+    document.documentElement.lang = language;
+    Object.assign(prime.config.locale!, primeLocale(language));
+    document.title = route.path === "/" || !title ? "Valetudo" : `Valetudo - ${translate(title)}`;
 }, {immediate: true});
-
-watch([() => router.currentRoute.value.path, language], ([path, value]) => {
-    document.documentElement.lang = value;
-    Object.assign(prime.config.locale!, primeLocale(value));
-    const titles: Record<string, string> = {
-        "/options": translate("Settings"),
-        "/robot/consumables": translate("Consumables"), "/robot/manual_control": translate("Manual control"), "/robot/total_statistics": translate("Total statistics"), "/robot/camera": translate("Camera"),
-        "/options/connectivity": translate("Connectivity"), "/options/connectivity/auth": translate("HTTP Basic Auth"), "/options/connectivity/networkadvertisement": translate("Network advertisement"),
-        "/options/connectivity/ntp": translate("NTP"), "/options/connectivity/wifi": translate("Wi-Fi connectivity"), "/options/connectivity/mqtt": translate("MQTT connectivity"),
-        "/options/map_management": translate("Map options"), "/options/map_management/segments": translate("Segment management"), "/options/map_management/virtual_restrictions": translate("Virtual restrictions"),
-        "/options/map_management/annotations": translate("Map annotations"), "/options/map_management/spectator": translate("Spectator map"), "/options/map_management/robot_coverage": translate("Robot coverage map"),
-        "/options/robot": translate("Robot options"), "/options/robot/system": translate("Robot system options"), "/options/robot/quirks": translate("Quirks"),
-        "/options/valetudo": translate("Valetudo options"), "/valetudo/timers": translate("Timers"),
-        "/valetudo/log": translate("Log"), "/valetudo/system_information": translate("System information"), "/valetudo/updater": translate("Updater"),
-        "/valetudo/ai": translate("AI Assistant"), "/valetudo/help": translate("Help"), "/valetudo/about": translate("About"), "/setup": translate("Wi-Fi connectivity")
-    };
-    document.title = path === "/" ? "Valetudo" : `Valetudo - ${titles[path] ?? "Valetudo"}`;
-}, {immediate: true});
-
-watch(paletteMode, value => {
-    document.documentElement.classList.toggle("dark", value === "dark");
-    if (!usingSystemTheme.value) {
-        localStorage.setItem("palette-mode", value);
-    }
-}, {immediate: true});
-
-const onSystemThemeChange = (event: MediaQueryListEvent) => {
-    if (usingSystemTheme.value) {
-        paletteMode.value = event.matches ? "dark" : "light";
-    }
-};
-media.addEventListener("change", onSystemThemeChange);
-onBeforeUnmount(() => media.removeEventListener("change", onSystemThemeChange));
-
-function setTheme(value: ThemeChoice) {
-    usingSystemTheme.value = value === "system";
-    if (value === "system") {localStorage.removeItem("palette-mode"); paletteMode.value = media.matches ? "dark" : "light";}
-    else {paletteMode.value = value; localStorage.setItem("palette-mode", value);}
-}
-
-provide(appPreferencesKey, {language, themeChoice, setLanguage, setTheme});
 
 function retry() {
     if (capabilities.isError.value) void capabilities.refetch();
@@ -141,31 +59,30 @@ function retry() {
 </script>
 
 <template>
-    <div class="app-frame" :class="{'app-frame-no-sidebar': loading || failed || router.currentRoute.value.path === '/setup'}">
-        <AppNavigation v-if="!loading && !failed && router.currentRoute.value.path !== '/setup'" variant="desktop" :capabilities="capabilities.data.value ?? []" />
+    <div class="app-frame" :class="{'app-frame-no-sidebar': !showChrome}">
+        <AppNavigation v-if="showChrome" variant="desktop" :capabilities="capabilities.data.value ?? []" />
         <div class="app-main">
             <header class="app-topbar">
-                <div class="app-breadcrumb"><span class="breadcrumb-prefix">Valetudo <span>/</span></span>{{ pageTitle }}</div>
+                <div class="app-breadcrumb"><span class="breadcrumb-prefix">Valetudo <span>/</span></span><template v-if="parentPage"><span class="breadcrumb-prefix">{{ parentPage.label }} <span>/</span></span></template>{{ pageTitle }}</div>
                 <div class="app-topbar-tools">
-                    <EventsPanel v-if="!loading && !failed" />
-                    <label class="sr-only" for="language-choice">{{ $t("Language") }}</label><Select id="language-choice" :model-value="language" :options="[{label: 'Русский', value: 'ru'}, {label: 'English', value: 'en'}]" option-label="label" option-value="value" :aria-label='$t("Language")' @update:model-value="setLanguage($event as Language)" />
-                    <label class="sr-only" for="theme-choice">{{ $t("Theme") }}</label><Select id="theme-choice" :model-value="themeChoice" :options="[{label: $t('System'), value: 'system'}, {label: $t('Light'), value: 'light'}, {label: $t('Dark'), value: 'dark'}]" option-label="label" option-value="value" :aria-label='$t("Theme")' @update:model-value="setTheme" />
+                    <EventsPanel v-if="ready" />
+                    <PreferenceSelects layout="toolbar" />
                 </div>
             </header>
-        <main class="app-content">
-            <RouterLink v-if="parentPage && !loading && !failed" class="app-back-link" :to="parentPage.to" :aria-label='$t("Back to {section}", {section: parentPage.label})'>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-                <span>{{ $t("Back to {section}", {section: parentPage.label}) }}</span>
-            </RouterLink>
-            <div v-if="loading" class="panel" role="status">{{ $t("Loading robot capabilities and Valetudo information…") }}</div>
-            <div v-else-if="failed" class="panel flex flex-col items-start gap-4">
-                <Message severity="error">{{ $t("Unable to connect to Valetudo.") }}</Message>
-                <Button :label='$t("Retry")' @click="retry" />
-            </div>
-            <RouterView v-else :capabilities="capabilities.data.value ?? []" :information="information.data.value" :palette-mode="paletteMode" />
-        </main>
+            <main class="app-content">
+                <RouterLink v-if="parentPage && ready" class="app-back-link" :to="parentPage.to">
+                    <AppIcon name="chevron-left" />
+                    <span>{{ $t("Back to {section}", {section: parentPage.label}) }}</span>
+                </RouterLink>
+                <div v-if="loading" class="panel" role="status">{{ $t("Loading robot capabilities and Valetudo information…") }}</div>
+                <div v-else-if="failed" class="panel flex flex-col items-start gap-4">
+                    <Message severity="error">{{ $t("Unable to connect to Valetudo.") }}</Message>
+                    <Button :label='$t("Retry")' @click="retry" />
+                </div>
+                <RouterView v-else :capabilities="capabilities.data.value ?? []" :information="information.data.value" :palette-mode="paletteMode" />
+            </main>
         </div>
-        <AppNavigation v-if="!loading && !failed && router.currentRoute.value.path !== '/setup'" variant="mobile" :capabilities="capabilities.data.value ?? []" />
-        <WelcomeDialog v-if="!loading && !failed && router.currentRoute.value.path !== '/setup' && information.data.value" :capabilities="capabilities.data.value ?? []" :information="information.data.value" />
+        <AppNavigation v-if="showChrome" variant="mobile" :capabilities="capabilities.data.value ?? []" />
+        <WelcomeDialog v-if="showChrome && information.data.value" :capabilities="capabilities.data.value ?? []" :information="information.data.value" />
     </div>
 </template>

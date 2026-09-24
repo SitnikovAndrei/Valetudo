@@ -25,6 +25,7 @@ import ToggleSetting from "../components/ToggleSetting.vue";
 import SelectSetting from "../components/SelectSetting.vue";
 import {translate} from "../i18n";
 import {valueLabel} from "../i18n/labels";
+import PageHeader from "../components/PageHeader.vue";
 
 const props = defineProps<{capabilities: Capability[]}>();
 const cleanRouteProperties = ref<CleanRouteControlProperties>();
@@ -72,13 +73,14 @@ const locate = useMutation({mutationFn: sendLocateCommand});
 </script>
 
 <template>
-    <section class="panel max-w-3xl">
-        <h1 class="mb-1 text-2xl font-bold">{{ $t("Robot options") }}</h1>
-        <p class="muted mb-5">{{ $t("Controls available on this robot") }}</p>
-        <ToggleSetting v-for="setting in visible" :key="setting.capability" :name="setting.name" :description="setting.description" :query-key="setting.capability" :fetch-state="setting.fetchState" :update-state="setting.updateState" />
-        <SelectSetting v-for="setting in visibleSelections" :key="setting.capability" :name="setting.name" :description="setting.description" :query-key="setting.capability" :fetch-value="setting.fetchValue" :fetch-options="setting.fetchOptions" :update-value="setting.updateValue" />
-        <div v-if="capabilities.includes(Capability.Locate)" class="mt-5"><Button :label='$t("Locate robot")' outlined :loading="locate.isPending.value" @click="locate.mutate()" /><p class="muted mt-2 text-sm">{{ $t("The robot will play a sound to announce its location") }}</p></div>
-        <div class="mt-5 flex gap-3"><RouterLink v-if="systemOptionsSupported" class="nav-card" to="/options/robot/system">{{ $t("System options") }}</RouterLink><RouterLink v-if="capabilities.includes(Capability.Quirks)" class="nav-card" to="/options/robot/quirks"><span class="block">{{ $t("Quirks") }}</span><span class="muted block text-sm">{{ $t("Configure firmware-specific quirks") }}</span></RouterLink></div>
-        <Message v-if="locate.isError.value" severity="error" class="mt-4">{{ $t("Unable to locate robot.") }}</Message>
-    </section>
+    <div class="page max-w-3xl">
+        <PageHeader :title="$t('Robot options')" :subtitle="$t('Controls available on this robot')" />
+        <section class="panel">
+            <ToggleSetting v-for="setting in visible" :key="setting.capability" :name="setting.name" :description="setting.description" :query-key="setting.capability" :fetch-state="setting.fetchState" :update-state="setting.updateState" />
+            <SelectSetting v-for="setting in visibleSelections" :key="setting.capability" :name="setting.name" :description="setting.description" :query-key="setting.capability" :fetch-value="setting.fetchValue" :fetch-options="setting.fetchOptions" :update-value="setting.updateValue" />
+            <div v-if="capabilities.includes(Capability.Locate)" class="mt-5"><Button :label='$t("Locate robot")' outlined :loading="locate.isPending.value" @click="locate.mutate()" /><p class="muted mt-2 text-sm">{{ $t("The robot will play a sound to announce its location") }}</p></div>
+            <div class="mt-5 flex gap-3"><RouterLink v-if="systemOptionsSupported" class="nav-card" to="/options/robot/system">{{ $t("System options") }}</RouterLink><RouterLink v-if="capabilities.includes(Capability.Quirks)" class="nav-card" to="/options/robot/quirks"><span class="block">{{ $t("Quirks") }}</span><span class="muted block text-sm">{{ $t("Configure firmware-specific quirks") }}</span></RouterLink></div>
+            <Message v-if="locate.isError.value" severity="error" class="mt-4">{{ $t("Unable to locate robot.") }}</Message>
+        </section>
+    </div>
 </template>
