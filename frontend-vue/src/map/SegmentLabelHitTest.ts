@@ -35,7 +35,7 @@ export function getSegmentLabelAtPoint(layers: RawMapLayer[], point: Point, meas
         if (dx * dx + dy * dy <= 7 * 7) return id;
 
         const label = layer.metaData.name || id;
-        if (Math.abs(dx) <= Math.min(measureLabel(label), 40) / 2 && Math.abs(dy) <= 3) return id;
+        if (Math.abs(dx) <= Math.min(measureLabel(label), 40) / 2 && Math.abs(dy - 7) <= 3) return id;
     }
     return null;
 }

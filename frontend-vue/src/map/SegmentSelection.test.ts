@@ -34,6 +34,7 @@ describe("segment selection", () => {
         const point = {x: 11.1, y: 20.5};
         expect(getSegmentAtPoint(lookup, point.x, point.y)).toBe("right");
         expect(getSegmentLabelAtPoint([label], point, () => 20)).toBe("left");
+        expect(getSegmentLabelAtPoint([label], {x: 20, y: 27.5}, () => 20)).toBe("left");
         expect(getSegmentLabelAtPoint([label], {x: 30, y: 30}, () => 20)).toBeNull();
     });
 

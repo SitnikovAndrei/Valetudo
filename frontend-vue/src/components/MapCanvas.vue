@@ -6,7 +6,10 @@ import {MapLayerManager} from "../../../frontend/src/map/MapLayerManager";
 import robotIcon from "../../../frontend/src/map/structures/icons/robot.svg";
 import chargerIcon from "../../../frontend/src/map/structures/icons/charger.svg";
 import targetIcon from "../../../frontend/src/map/structures/icons/marker.svg";
+import activeTargetIcon from "../../../frontend/src/map/structures/icons/marker_active.svg";
 import obstacleIcon from "../../../frontend/src/map/structures/icons/obstacle.svg";
+import segmentIcon from "../../../frontend/src/map/structures/icons/segment.svg";
+import selectedSegmentIcon from "../../../frontend/src/map/structures/icons/segment_selected.svg";
 import {activated, aprilFools} from "../aprilFools";
 import {i18n, translate} from "../i18n";
 import {MapViewport, type Point} from "../map/MapViewport";
@@ -47,23 +50,30 @@ const icons = {
     robot: new Image(),
     charger: new Image(),
     target: new Image(),
-    obstacle: new Image()
+    activeTarget: new Image(),
+    obstacle: new Image(),
+    segment: new Image(),
+    selectedSegment: new Image()
 };
 icons.robot.src = robotIcon;
 icons.charger.src = chargerIcon;
 icons.target.src = targetIcon;
+icons.activeTarget.src = activeTargetIcon;
 icons.obstacle.src = obstacleIcon;
+icons.segment.src = segmentIcon;
+icons.selectedSegment.src = selectedSegmentIcon;
 Object.values(icons).forEach(icon => { icon.onload = () => draw(); });
 
-function drawIcon(ctx: CanvasRenderingContext2D, icon: HTMLImageElement, x: number, y: number, angle = 0) {
+function drawIcon(ctx: CanvasRenderingContext2D, icon: HTMLImageElement, x: number, y: number, divisor: number, anchorY = 0.5, angle = 0) {
     if (!icon.complete || !icon.naturalWidth) return;
-    const size = 30 * viewport.dpr;
+    const width = icon.naturalWidth * viewport.scale / divisor;
+    const height = icon.naturalHeight * viewport.scale / divisor;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const position = viewport.toCanvasPoint({x, y});
     ctx.translate(position.x, position.y);
     ctx.rotate(angle * Math.PI / 180);
-    ctx.drawImage(icon, -size / 2, -size / 2, size, size);
+    ctx.drawImage(icon, -width / 2, -height * anchorY, width, height);
     ctx.restore();
 }
 
@@ -138,21 +148,14 @@ function drawEntities(ctx: CanvasRenderingContext2D) {
                 ctx.strokeStyle = "#6ccfa0";
                 polygon(ctx, entity);
                 break;
-            case RawMapEntityType.RobotPosition:
-                drawIcon(ctx, icons.robot, x, y, entity.metaData.angle ?? 0);
-                break;
-            case RawMapEntityType.ChargerLocation:
-                drawIcon(ctx, icons.charger, x, y);
-                break;
-            case RawMapEntityType.GoToTarget:
             case RawMapEntityType.Obstacle:
-                drawIcon(ctx, entity.type === RawMapEntityType.Obstacle ? icons.obstacle : icons.target, x, y);
+                drawIcon(ctx, icons.obstacle, x, y, 8);
                 break;
         }
     }
 }
 
-function drawSelections(ctx: CanvasRenderingContext2D) {
+function drawSegmentLabels(ctx: CanvasRenderingContext2D) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = "6px IBM Plex Sans, sans-serif";
@@ -160,13 +163,30 @@ function drawSelections(ctx: CanvasRenderingContext2D) {
         if (layer.type !== RawMapLayerType.Segment || !layer.metaData.segmentId) continue;
         const {x, y} = getSegmentLabelPoint(layer);
         const selected = props.selectedSegmentIds.includes(layer.metaData.segmentId);
-        ctx.fillStyle = selected ? "#f7a844" : "#ffffff";
-        ctx.beginPath();
-        ctx.arc(x, y, 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#19352c";
-        ctx.fillText(layer.metaData.name || layer.metaData.segmentId, x, y, 40);
+        drawIcon(ctx, selected ? icons.selectedSegment : icons.segment, x, y, 4, 2 / 3, layer.metaData.active ? 180 : 0);
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#121212";
+        ctx.lineWidth = 0.8;
+        const label = layer.metaData.name || layer.metaData.segmentId;
+        ctx.strokeText(label, x, y + 7, 40);
+        ctx.fillText(label, x, y + 7, 40);
     }
+}
+
+function drawForegroundIcons(ctx: CanvasRenderingContext2D) {
+    for (const type of [RawMapEntityType.GoToTarget, RawMapEntityType.ChargerLocation, RawMapEntityType.RobotPosition]) {
+        for (const entity of props.map.entities) {
+            if (entity.type !== type) continue;
+            const x = entity.points[0] / props.map.pixelSize;
+            const y = entity.points[1] / props.map.pixelSize;
+            if (type === RawMapEntityType.GoToTarget) drawIcon(ctx, icons.activeTarget, x, y, 7, 1);
+            else if (type === RawMapEntityType.ChargerLocation) drawIcon(ctx, icons.charger, x, y, 4.5);
+            else drawIcon(ctx, icons.robot, x, y, 4.5, 0.5, entity.metaData.angle ?? 0);
+        }
+    }
+}
+
+function drawInteractionOverlays(ctx: CanvasRenderingContext2D) {
     ctx.strokeStyle = "#f7a844";
     ctx.lineWidth = 2;
     for (const zone of props.zones) {
@@ -180,10 +200,7 @@ function drawSelections(ctx: CanvasRenderingContext2D) {
         else ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
     }
     if (props.target) {
-        ctx.strokeStyle = "#f7a844";
-        ctx.beginPath();
-        ctx.arc(props.target.x, props.target.y, 7, 0, Math.PI * 2);
-        ctx.stroke();
+        drawIcon(ctx, icons.target, props.target.x, props.target.y, 7, 1);
     }
     if (props.editLine) {
         ctx.strokeStyle = "#f7a844";
@@ -206,7 +223,9 @@ function draw() {
     ctx.drawImage(layers.getCanvas(), 0, 0);
     ctx.imageSmoothingEnabled = true;
     drawEntities(ctx);
-    if (!props.coverage) drawSelections(ctx);
+    if (!props.coverage) drawSegmentLabels(ctx);
+    drawForegroundIcons(ctx);
+    if (!props.coverage) drawInteractionOverlays(ctx);
     if (aprilFools.value && !activated.value) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = props.paletteMode === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(72, 72, 72, 0.5)";
