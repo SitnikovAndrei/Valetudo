@@ -8,6 +8,7 @@ import {RobotAttributeClass, type RobotAttribute} from "../api/RawRobotState";
 import {fetchCurrentStatistics, fetchTotalStatistics, sendAutoEmptyDockManualTriggerCommand, sendMopDockCleanManualTriggerCommand, sendMopDockDryManualTriggerCommand} from "../api/client";
 import {translate} from "../i18n";
 import {formatStatisticsValue} from "../statistics";
+import HomeDockActionIcon from "./HomeDockActionIcon.vue";
 
 const props = defineProps<{capabilities: Capability[]; attributes: RobotAttribute[]}>();
 const robotState = computed(() => props.attributes.find(attribute => attribute.__class === RobotAttributeClass.StatusState)?.value);
@@ -18,6 +19,7 @@ const canEmpty = computed(() => dockStateKnown.value && robotState.value === "do
 const canClean = computed(() => dockStateKnown.value && robotState.value === "docked" && mopAttached.value && ["idle", "cleaning", "pause"].includes(dockState.value));
 const canDry = computed(() => dockStateKnown.value && robotState.value === "docked" && mopAttached.value && ["idle", "drying", "pause"].includes(dockState.value));
 const hasTotalStatistics = computed(() => props.capabilities.includes(Capability.TotalStatistics));
+const hasDockActions = computed(() => props.capabilities.some(capability => [Capability.AutoEmptyDockManualTrigger, Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability)));
 const showCurrentStatistics = computed(() => !hasTotalStatistics.value && props.capabilities.includes(Capability.CurrentStatistics) && robotState.value !== undefined && !["idle", "docked"].includes(robotState.value));
 const showStatistics = computed(() => hasTotalStatistics.value || showCurrentStatistics.value);
 const totalStats = useQuery({queryKey: ["totalStatistics"], queryFn: fetchTotalStatistics, enabled: hasTotalStatistics});
@@ -37,16 +39,16 @@ function statLabel(type: ValetudoDataPoint["type"]): string {
 </script>
 
 <template>
-    <div v-if="showStatistics || capabilities.some(capability => [Capability.AutoEmptyDockManualTrigger, Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability))" class="home-details">
+    <div v-if="showStatistics || hasDockActions" class="home-details">
         <template v-if="showStatistics">
             <span class="page-header-kicker">{{ hasTotalStatistics ? $t("Total statistics") : $t("Current statistics") }}</span>
             <div class="home-current-stats"><div v-for="stat in statistics" :key="stat.type"><strong>{{ formatStatisticsValue(stat) }}</strong><small>{{ statLabel(stat.type) }}</small></div><p v-if="statisticsPending" class="muted text-xs">{{ $t("Loading…") }}</p></div>
             <Message v-if="statisticsError" severity="error" class="mt-3">{{ hasTotalStatistics ? $t("Unable to load total statistics.") : $t("A robot control request failed.") }}</Message>
         </template>
-        <div class="flex flex-wrap gap-2" :class="{'mt-4': showStatistics}">
-            <Button v-if="capabilities.includes(Capability.AutoEmptyDockManualTrigger)" :label='$t("Empty dustbin")' outlined :disabled="dockMutation.isPending.value || !canEmpty" @click="dockMutation.mutate('empty')" />
-            <Button v-if="capabilities.includes(Capability.MopDockCleanManualTrigger)" :label="dockState === 'cleaning' ? $t('Stop mop cleaning') : $t('Clean mop')" outlined :disabled="dockMutation.isPending.value || !canClean" @click="dockMutation.mutate(dockState === 'cleaning' ? 'stop_clean' : 'clean')" />
-            <Button v-if="capabilities.includes(Capability.MopDockDryManualTrigger)" :label="dockState === 'drying' ? $t('Stop mop drying') : $t('Dry mop')" outlined :disabled="dockMutation.isPending.value || !canDry" @click="dockMutation.mutate(dockState === 'drying' ? 'stop_dry' : 'dry')" />
+        <div v-if="hasDockActions" class="home-dock-actions" :class="{'mt-4': showStatistics}">
+            <Button v-if="capabilities.includes(Capability.AutoEmptyDockManualTrigger)" :label='$t("Empty dustbin")' outlined :disabled="dockMutation.isPending.value || !canEmpty" @click="dockMutation.mutate('empty')"><template #icon><HomeDockActionIcon action="empty" /></template></Button>
+            <Button v-if="capabilities.includes(Capability.MopDockCleanManualTrigger)" :label="dockState === 'cleaning' ? $t('Stop mop cleaning') : $t('Clean mop')" outlined :disabled="dockMutation.isPending.value || !canClean" @click="dockMutation.mutate(dockState === 'cleaning' ? 'stop_clean' : 'clean')"><template #icon><HomeDockActionIcon :action="dockState === 'cleaning' ? 'stop' : 'wash'" /></template></Button>
+            <Button v-if="capabilities.includes(Capability.MopDockDryManualTrigger)" :label="dockState === 'drying' ? $t('Stop mop drying') : $t('Dry mop')" outlined :disabled="dockMutation.isPending.value || !canDry" @click="dockMutation.mutate(dockState === 'drying' ? 'stop_dry' : 'dry')"><template #icon><HomeDockActionIcon :action="dockState === 'drying' ? 'stop' : 'dry'" /></template></Button>
         </div>
         <Message v-if="dockMutation.isError.value" severity="error" class="mt-4">{{ $t("A robot control request failed.") }}</Message>
     </div>

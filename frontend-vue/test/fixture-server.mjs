@@ -12,6 +12,7 @@ const status = {
 };
 const embedded = process.env.FIXTURE_EMBEDDED === "1";
 const rich = process.env.FIXTURE_RICH === "1";
+const dockScenario = process.env.FIXTURE_DOCK_STATE;
 const noMap = process.env.FIXTURE_NO_MAP === "1";
 const basicOnly = process.env.FIXTURE_BASIC_ONLY === "1";
 if (rich) status.value = "docked";
@@ -22,6 +23,7 @@ const responses = new Map([
     ["/api/v2/robot", {manufacturer: "Test", modelName: "Fixture Vacuum", modelDetails: {supportedAttachments: [], supportedDockComponents: []}, implementation: "fixture"}],
     ["/api/v2/robot/state/attributes", [status, {__class: "BatteryStateAttribute", metaData: {}, level: 87, flag: "charging"}]],
     ["/api/v2/robot/state/map", noMap ? null : fixtureMap],
+    ["/api/v2/events", []],
     ["/api/v2/robot/capabilities/MapSegmentationCapability/properties", {iterationCount: {min: 1, max: 3}, customOrderSupport: true}],
     ["/api/v2/robot/capabilities/ZoneCleaningCapability/properties", {zoneCount: {min: 1, max: 3}, iterationCount: {min: 1, max: 3}}],
     ["/api/v2/robot/capabilities/TotalStatisticsCapability", [{type: "count", value: 12, timestamp: "2026-01-01T00:00:00Z"}]],
@@ -33,6 +35,13 @@ const timers = {};
 let nextTimerId = 1;
 
 if (rich) {
+    if (dockScenario) {
+        responses.get("/api/v2/robot/capabilities").push("AutoEmptyDockManualTriggerCapability", "MopDockCleanManualTriggerCapability", "MopDockDryManualTriggerCapability");
+        responses.get("/api/v2/robot/state/attributes").push(
+            {__class: "DockStatusStateAttribute", metaData: {}, value: dockScenario},
+            {__class: "AttachmentStateAttribute", type: "mop", attached: true}
+        );
+    }
     responses.get("/api/v2/robot/capabilities").push("CurrentStatisticsCapability");
     responses.set("/api/v2/robot/capabilities/TotalStatisticsCapability", [
         {type: "time", value: 7350, timestamp: "2026-01-01T00:00:00Z"},

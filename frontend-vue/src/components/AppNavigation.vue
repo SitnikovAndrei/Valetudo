@@ -61,7 +61,6 @@ function current(path: string) {
             <div class="app-nav-group">
                 <p class="app-nav-title">{{ $t("Settings") }}</p>
                 <RouterLink v-for="link in secondary" :key="link.to" :to="link.to" class="app-nav-link" :aria-current="current(link.to) ? 'page' : undefined"><span class="app-nav-glyph">{{ link.glyph }}</span>{{ link.label }}</RouterLink>
-                <button class="app-nav-link w-full text-left" type="button" @click="open = true"><span class="app-nav-glyph">☷</span>{{ $t("All sections") }}</button>
             </div>
         </nav>
         <div class="mt-auto border-t px-3 pt-4 text-xs" style="border-color: var(--app-border); color: var(--app-muted)">{{ $t("Local control") }}</div>
@@ -72,7 +71,7 @@ function current(path: string) {
         <RouterLink to="/options" :aria-current="current('/options') ? 'page' : undefined"><span class="app-nav-glyph">⚙</span>{{ $t("Settings") }}</RouterLink>
         <button type="button" :aria-label='$t("All sections")' @click="open = true"><span class="app-nav-glyph">☷</span>{{ $t("More") }}</button>
     </nav>
-    <Drawer v-model:visible="open" :header='$t("All sections")' position="left" class="w-[min(90vw,24rem)]">
+    <Drawer v-if="variant === 'mobile'" v-model:visible="open" :header='$t("All sections")' position="left" class="w-[min(90vw,24rem)]">
         <nav :aria-label='$t("All sections")'>
             <div v-for="group in [{title: $t('Main'), links: [...primary, ...secondary]}, ...sections]" :key="group.title" class="mb-5">
                 <p class="app-nav-title">{{ group.title }}</p>

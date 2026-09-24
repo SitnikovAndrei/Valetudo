@@ -91,7 +91,13 @@ a { color: var(--app-accent); }
 .app-breadcrumb span { padding: 0 8px; color: var(--app-muted); }
 .app-topbar-tools { display: flex; align-items: center; gap: 9px; }
 .app-topbar-tools .p-select { max-width: 126px; }
+.events-trigger.p-button { position: relative; flex: 0 0 38px; width: 38px; height: 38px; padding: 0; border-radius: 9px; color: var(--app-secondary); }
+.events-trigger svg { width: 20px; height: 20px; }
+.events-count { position: absolute; top: -3px; right: -3px; display: grid; min-width: 17px; height: 17px; padding: 0 3px; place-items: center; border: 2px solid var(--app-surface); border-radius: 9px; background: var(--app-accent); color: var(--app-surface); font-size: 9px; font-weight: 800; line-height: 1; }
 .app-content { min-width: 0; padding: 24px 27px 35px; }
+.app-back-link { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; margin: -3px 0 13px -8px; padding: 4px 8px; border-radius: 8px; color: var(--app-accent); font-size: 13px; font-weight: 700; text-decoration: none; }
+.app-back-link:hover { background: var(--app-accent-soft); }
+.app-back-link svg { flex: none; width: 17px; height: 17px; }
 .app-content > section { min-width: 0; }
 .panel { min-width: 0; background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 14px; padding: 20px; box-shadow: 0 5px 20px rgb(23 57 36 / 3%); }
 .nav-link:hover, .nav-link[aria-current="page"] { color: var(--app-accent); background: var(--app-accent-soft); }
@@ -184,6 +190,10 @@ a { color: var(--app-accent); }
 .home-robot-stats strong, .home-current-stats strong { font-size: 13px; }
 .home-robot-stats small, .home-current-stats small { color: var(--app-muted); font-size: 11px; }
 .home-details { margin-top: 12px; }
+.home-dock-actions { display: grid; gap: 7px; }
+.home-dock-actions .p-button { width: 100%; min-height: 38px; justify-content: flex-start; padding: 7px 10px; font-size: 12px; font-weight: 600; line-height: 1.25; }
+.home-dock-actions .p-button-label { white-space: normal; text-align: left; }
+.home-dock-action-icon { display: block; flex: 0 0 17px; width: 17px; height: 17px; }
 .home-current-stats { border-top: 0; }
 .home-quiet-card { grid-area: quiet; display: flex; align-items: center; gap: 11px; min-height: 63px; padding: 12px 15px; border: 1px solid var(--app-border); border-radius: 12px; background: var(--app-surface-soft); color: var(--app-text); text-decoration: none; }
 .home-quiet-card > span:first-child { color: var(--app-accent); font-size: 22px; }

@@ -35,7 +35,10 @@ function act(event: ValetudoEvent, action: ValetudoEventInteraction["interaction
 </script>
 
 <template>
-    <Button :label="`${$t('Events')}${count ? ` (${count})` : ''}`" text :aria-label='$t("Events and notifications")' @click="open = true" />
+    <Button class="events-trigger" text :aria-label='$t("Events and notifications")' :title='$t("Events and notifications")' @click="open = true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+        <span v-if="count" class="events-count" aria-hidden="true">{{ count > 9 ? "9+" : count }}</span>
+    </Button>
     <Drawer v-model:visible="open" :header='$t("Events")' position="right" class="w-[min(95vw,28rem)]">
         <Button :label='$t("Refresh")' text :loading="events.isFetching.value" @click="events.refetch()" />
         <p v-if="events.isPending.value" role="status">{{ $t("Loading events…") }}</p>

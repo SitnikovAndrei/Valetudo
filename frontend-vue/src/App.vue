@@ -42,6 +42,22 @@ const pageTitle = computed(() => {
     if (path === "/valetudo/about") return translate("About");
     return translate("Valetudo");
 });
+const parentPage = computed(() => {
+    const path = router.currentRoute.value.path;
+    const settingsGroups = [
+        {path: "/options/map_management", section: "map", label: "Map options"},
+        {path: "/options/connectivity", section: "connectivity", label: "Connectivity"},
+        {path: "/options/robot", section: "robot", label: "Robot options"},
+        {path: "/options/valetudo", section: "valetudo", label: "Valetudo options"}
+    ];
+    for (const group of settingsGroups) {
+        if (path === group.path) return {to: {path: "/options", query: {section: group.section}}, label: translate("Settings")};
+        if (path.startsWith(`${group.path}/`)) return {to: group.path, label: translate(group.label)};
+    }
+    if (["/robot/manual_control", "/robot/camera"].includes(path)) return {to: {path: "/options", query: {section: "robot"}}, label: translate("Settings")};
+    if (["/valetudo/updater", "/valetudo/system_information", "/valetudo/log", "/valetudo/ai", "/valetudo/help", "/valetudo/about"].includes(path)) return {to: {path: "/options", query: {section: "valetudo"}}, label: translate("Settings")};
+    return null;
+});
 const bypassProvisioning = ref(false);
 
 const capabilities = useQuery({queryKey: ["capabilities"], queryFn: fetchCapabilities, retry: 1});
@@ -134,6 +150,10 @@ function retry() {
                 </div>
             </header>
         <main class="app-content">
+            <RouterLink v-if="parentPage && !loading && !failed" class="app-back-link" :to="parentPage.to" :aria-label='$t("Back to {section}", {section: parentPage.label})'>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+                <span>{{ $t("Back to {section}", {section: parentPage.label}) }}</span>
+            </RouterLink>
             <div v-if="loading" class="panel" role="status">{{ $t("Loading robot capabilities and Valetudo information…") }}</div>
             <div v-else-if="failed" class="panel flex flex-col items-start gap-4">
                 <Message severity="error">{{ $t("Unable to connect to Valetudo.") }}</Message>

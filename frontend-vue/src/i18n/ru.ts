@@ -853,6 +853,7 @@ export const ru: Record<string, string> = {
     "Selected zones: {count}": "Выбрано зон: {count}",
     "Service": "Сервис",
     "Settings": "Настройки",
+    "Back to {section}": "Назад: {section}",
     "Settings are grouped by task and shown when supported by the robot.": "Параметры сгруппированы по задаче и показаны с учётом возможностей робота.",
     "The behavior depends on the robot model.": "Поведение зависит от модели робота.",
     "The current map selection will be cleared.": "Текущий выбор на карте будет сброшен.",

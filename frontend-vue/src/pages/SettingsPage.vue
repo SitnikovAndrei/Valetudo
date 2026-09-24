@@ -2,6 +2,8 @@
 import {computed} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import {Capability} from "../api/types";
+import {fetchDuststreamingConfiguration} from "../api/client";
+import {useQuery} from "@tanstack/vue-query";
 import {useRobotAttributes} from "../composables/useRobotAttributes";
 import {translate} from "../i18n";
 import PageHeader from "../components/PageHeader.vue";
@@ -17,6 +19,7 @@ const props = defineProps<{capabilities: Capability[]}>();
 const route = useRoute();
 const router = useRouter();
 const {query: attributes} = useRobotAttributes();
+const duststream = useQuery({queryKey: ["duststreamConfiguration"], queryFn: fetchDuststreamingConfiguration, enabled: computed(() => props.capabilities.includes(Capability.Duststreaming))});
 const categories = computed<{key: Category; label: string}[]>(() => [
     {key: "cleaning", label: translate("Cleaning")},
     {key: "map", label: translate("Map")},
@@ -44,6 +47,8 @@ const links = computed<Record<Exclude<Category, "cleaning">, Link[]>>(() => ({
     ],
     robot: [
         {label: translate("Robot options"), to: "/options/robot"},
+        ...(props.capabilities.includes(Capability.ManualControl) || props.capabilities.includes(Capability.HighResolutionManualControl) ? [{label: translate("Manual control"), to: "/robot/manual_control"}] : []),
+        ...(props.capabilities.includes(Capability.Duststreaming) && duststream.data.value?.enabled ? [{label: translate("Camera"), to: "/robot/camera"}] : []),
         {label: translate("System options"), to: "/options/robot/system", anyCapability: systemOptions},
         {label: translate("Quirks"), to: "/options/robot/quirks", capability: Capability.Quirks}
     ],
@@ -52,6 +57,7 @@ const links = computed<Record<Exclude<Category, "cleaning">, Link[]>>(() => ({
         {label: translate("Updater"), to: "/valetudo/updater"},
         {label: translate("System information"), to: "/valetudo/system_information"},
         {label: translate("Log"), to: "/valetudo/log"},
+        {label: translate("AI Assistant"), to: "/valetudo/ai"},
         {label: translate("Help"), to: "/valetudo/help"},
         {label: translate("About"), to: "/valetudo/about"}
     ]
