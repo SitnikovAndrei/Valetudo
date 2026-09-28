@@ -28,6 +28,7 @@ defineEmits<{
 }>();
 
 const canvas = ref<InstanceType<typeof MapCanvas>>();
+defineExpose({fitMap: () => canvas.value?.fitMap()});
 const expanded = ref(false);
 const carpetMaterials = [RawMapLayerMaterial.Carpet, RawMapLayerMaterial.CarpetLow, RawMapLayerMaterial.CarpetHigh];
 const hasCarpets = computed(() => props.map?.entities.some(entity => entity.type === RawMapEntityType.Carpet) === true

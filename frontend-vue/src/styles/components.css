@@ -58,4 +58,7 @@
     .setting-row { flex-wrap: wrap; align-items: flex-start; }
     .setting-row > :last-child:not(.setting-row-copy) { width: 100%; }
     .setting-row .p-select, .setting-select { width: 100%; }
+    .setting-row .p-selectbutton { display: flex; flex-wrap: wrap; max-width: 100%; gap: 4px; }
+    .setting-row .p-selectbutton .p-togglebutton { flex: 1 1 auto; min-width: 0; white-space: normal; }
+    .setting-row .p-selectbutton .p-togglebutton-label { overflow-wrap: anywhere; }
 }

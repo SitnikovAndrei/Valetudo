@@ -1,25 +1,20 @@
 <script setup lang="ts">
 import {computed} from "vue";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
+import {useQuery} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
 import {Capability, type ValetudoDataPoint} from "../api/types";
 import {RobotAttributeClass, type RobotAttribute} from "../api/RawRobotState";
-import {fetchCurrentStatistics, fetchTotalStatistics, sendAutoEmptyDockManualTriggerCommand, sendMopDockCleanManualTriggerCommand, sendMopDockDryManualTriggerCommand} from "../api/client";
+import {fetchCurrentStatistics, fetchTotalStatistics} from "../api/client";
 import {translate} from "../i18n";
 import {formatStatisticsValue} from "../statistics";
+import {useDockActions} from "../composables/useDockActions";
 import HomeDockActionIcon from "./HomeDockActionIcon.vue";
 
 const props = defineProps<{capabilities: Capability[]; attributes: RobotAttribute[]}>();
 const robotState = computed(() => props.attributes.find(attribute => attribute.__class === RobotAttributeClass.StatusState)?.value);
-const dockState = computed(() => props.attributes.find(attribute => attribute.__class === RobotAttributeClass.DockStatusState)?.value ?? "idle");
-const mopAttached = computed(() => props.attributes.some(attribute => attribute.__class === RobotAttributeClass.AttachmentState && attribute.type === "mop" && attribute.attached));
-const dockStateKnown = computed(() => !props.capabilities.some(capability => [Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability)) || props.attributes.some(attribute => attribute.__class === RobotAttributeClass.DockStatusState));
-const canEmpty = computed(() => dockStateKnown.value && robotState.value === "docked" && ["idle", "pause"].includes(dockState.value));
-const canClean = computed(() => dockStateKnown.value && robotState.value === "docked" && mopAttached.value && ["idle", "cleaning", "pause"].includes(dockState.value));
-const canDry = computed(() => dockStateKnown.value && robotState.value === "docked" && mopAttached.value && ["idle", "drying", "pause"].includes(dockState.value));
 const hasTotalStatistics = computed(() => props.capabilities.includes(Capability.TotalStatistics));
-const hasDockActions = computed(() => props.capabilities.some(capability => [Capability.AutoEmptyDockManualTrigger, Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability)));
+const {hasDockActions, dockState, canEmpty, canClean, canDry, dockMutation} = useDockActions({capabilities: () => props.capabilities, attributes: () => props.attributes});
 const showCurrentStatistics = computed(() => !hasTotalStatistics.value && props.capabilities.includes(Capability.CurrentStatistics) && robotState.value !== undefined && !["idle", "docked"].includes(robotState.value));
 const showStatistics = computed(() => hasTotalStatistics.value || showCurrentStatistics.value);
 const totalStats = useQuery({queryKey: ["totalStatistics"], queryFn: fetchTotalStatistics, enabled: hasTotalStatistics});
@@ -28,12 +23,6 @@ const statisticsOrder = {time: 0, area: 1, count: 2};
 const statistics = computed(() => [...(hasTotalStatistics.value ? totalStats.data.value ?? [] : currentStats.data.value ?? [])].sort((a, b) => statisticsOrder[a.type] - statisticsOrder[b.type]));
 const statisticsPending = computed(() => hasTotalStatistics.value ? totalStats.isPending.value : currentStats.isPending.value);
 const statisticsError = computed(() => hasTotalStatistics.value ? totalStats.isError.value : currentStats.isError.value);
-const queryClient = useQueryClient();
-const dockMutation = useMutation({onSuccess: () => queryClient.invalidateQueries({queryKey: ["robotAttributes"]}), mutationFn: async (action: "empty" | "clean" | "dry" | "stop_clean" | "stop_dry") => {
-    if (action === "empty") return sendAutoEmptyDockManualTriggerCommand();
-    if (action === "clean" || action === "stop_clean") return sendMopDockCleanManualTriggerCommand(action === "clean" ? "start" : "stop");
-    return sendMopDockDryManualTriggerCommand(action === "dry" ? "start" : "stop");
-}});
 
 function statLabel(type: ValetudoDataPoint["type"]): string {
     return {time: translate("Cleaning time"), area: translate("Cleaned area"), count: translate("Cleanups")}[type];

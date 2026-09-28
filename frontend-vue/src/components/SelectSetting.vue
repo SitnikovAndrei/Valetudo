@@ -2,6 +2,7 @@
 import {computed} from "vue";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Select from "primevue/select";
+import SelectButton from "primevue/selectbutton";
 import Message from "primevue/message";
 import {valueLabel} from "../i18n/labels";
 import SettingRow from "./SettingRow.vue";
@@ -23,7 +24,8 @@ const choices = computed(() => (options.data.value ?? []).map(option => ({label:
 
 <template>
     <SettingRow :name="name" :description="description">
-        <Select :model-value="value.data.value" :options="choices" option-label="label" option-value="value" :aria-label="name" :disabled="value.isPending.value || options.isPending.value || value.isError.value || options.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(String($event))" />
+        <SelectButton v-if="choices.length >= 2 && choices.length <= 4" :allow-empty="false" :model-value="value.data.value" :options="choices" option-label="label" option-value="value" :aria-label="name" :disabled="value.isPending.value || options.isPending.value || value.isError.value || options.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(String($event))" />
+        <Select v-else :model-value="value.data.value" :options="choices" option-label="label" option-value="value" :aria-label="name" :disabled="value.isPending.value || options.isPending.value || value.isError.value || options.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(String($event))" />
         <Message v-if="value.isError.value || options.isError.value || mutation.isError.value" severity="error" class="mt-2">{{ $t("Unable to load or update {name}.", {name}) }}</Message>
     </SettingRow>
 </template>

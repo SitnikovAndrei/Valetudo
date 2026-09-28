@@ -16,7 +16,7 @@ import PreferenceSelects from "../components/PreferenceSelects.vue";
 import AppIcon from "../components/AppIcon.vue";
 
 type Category = "cleaning" | "map" | "connectivity" | "robot" | "valetudo";
-type Link = {label: string; to: string; capability?: Capability; anyCapability?: Capability[]};
+type Link = {label: string; description: string; to: string; capability?: Capability; anyCapability?: Capability[]};
 const props = defineProps<{capabilities: Capability[]}>();
 const route = useRoute();
 const router = useRouter();
@@ -34,36 +34,36 @@ const hasPresets = computed(() => props.capabilities.some(capability => [Capabil
 const systemOptions = [Capability.SpeakerVolumeControl, Capability.SpeakerTest, Capability.VoicePackManagement];
 const links = computed<Record<Exclude<Category, "cleaning">, Link[]>>(() => ({
     map: [
-        {label: translate("Map options"), to: "/options/map_management"},
-        {label: translate("Segment management"), to: "/options/map_management/segments", anyCapability: [Capability.MapSegmentEdit, Capability.MapSegmentRename, Capability.MapSegmentMaterialControl]},
-        {label: translate("Virtual restrictions"), to: "/options/map_management/virtual_restrictions", capability: Capability.CombinedVirtualRestrictions},
-        {label: translate("Map annotations"), to: "/options/map_management/annotations", capability: Capability.MapAnnotations},
-        {label: translate("Robot coverage map"), to: "/options/map_management/robot_coverage"}
+        {label: translate("Map options"), description: translate("Manage maps and mapping behaviour"), to: "/options/map_management"},
+        {label: translate("Segment management"), description: translate("Edit rooms, names and floor materials"), to: "/options/map_management/segments", anyCapability: [Capability.MapSegmentEdit, Capability.MapSegmentRename, Capability.MapSegmentMaterialControl]},
+        {label: translate("Virtual restrictions"), description: translate("Set no-go zones and virtual walls"), to: "/options/map_management/virtual_restrictions", capability: Capability.CombinedVirtualRestrictions},
+        {label: translate("Map annotations"), description: translate("Manage points and marks on the map"), to: "/options/map_management/annotations", capability: Capability.MapAnnotations},
+        {label: translate("Robot coverage map"), description: translate("View where the robot has cleaned"), to: "/options/map_management/robot_coverage"}
     ],
     connectivity: [
-        {label: translate("HTTP Basic Auth"), to: "/options/connectivity/auth"},
-        {label: translate("MQTT"), to: "/options/connectivity/mqtt"},
-        {label: translate("Network advertisement"), to: "/options/connectivity/networkadvertisement"},
-        {label: translate("NTP"), to: "/options/connectivity/ntp"},
-        {label: translate("Wi-Fi"), to: "/options/connectivity/wifi", capability: Capability.WifiConfiguration}
+        {label: translate("HTTP Basic Auth"), description: translate("Protect access with a username and password"), to: "/options/connectivity/auth"},
+        {label: translate("MQTT"), description: translate("Connect to home automation"), to: "/options/connectivity/mqtt"},
+        {label: translate("Network advertisement"), description: translate("Configure local network discovery"), to: "/options/connectivity/networkadvertisement"},
+        {label: translate("NTP"), description: translate("Configure time synchronization"), to: "/options/connectivity/ntp"},
+        {label: translate("Wi-Fi"), description: translate("Connect the robot to a wireless network"), to: "/options/connectivity/wifi", capability: Capability.WifiConfiguration}
     ],
     robot: [
-        {label: translate("Robot options"), to: "/options/robot"},
-        {label: translate("Statistics"), to: "/robot/total_statistics", capability: Capability.TotalStatistics},
-        {label: translate("Consumables"), to: "/robot/consumables", capability: Capability.ConsumableMonitoring},
-        ...(props.capabilities.includes(Capability.ManualControl) || props.capabilities.includes(Capability.HighResolutionManualControl) ? [{label: translate("Manual control"), to: "/robot/manual_control"}] : []),
-        ...(props.capabilities.includes(Capability.Duststreaming) && duststream.data.value?.enabled ? [{label: translate("Camera"), to: "/robot/camera"}] : []),
-        {label: translate("System options"), to: "/options/robot/system", anyCapability: systemOptions},
-        {label: translate("Quirks"), to: "/options/robot/quirks", capability: Capability.Quirks}
+        {label: translate("Robot options"), description: translate("Cleaning, obstacle, mop and dock behaviour"), to: "/options/robot"},
+        {label: translate("System options"), description: translate("Volume and voice packs"), to: "/options/robot/system", anyCapability: systemOptions},
+        {label: translate("Quirks"), description: translate("Firmware-specific settings and dock actions"), to: "/options/robot/quirks", capability: Capability.Quirks},
+        {label: translate("Consumables"), description: translate("Wear and reset of brushes and filters"), to: "/robot/consumables", capability: Capability.ConsumableMonitoring},
+        {label: translate("Statistics"), description: translate("Total cleaning time and area"), to: "/robot/total_statistics", capability: Capability.TotalStatistics},
+        ...(props.capabilities.includes(Capability.ManualControl) || props.capabilities.includes(Capability.HighResolutionManualControl) ? [{label: translate("Manual control"), description: translate("Drive the robot manually"), to: "/robot/manual_control"}] : []),
+        ...(props.capabilities.includes(Capability.Duststreaming) && duststream.data.value?.enabled ? [{label: translate("Camera"), description: translate("Live camera stream"), to: "/robot/camera"}] : [])
     ],
     valetudo: [
-        {label: translate("Valetudo options"), to: "/options/valetudo"},
-        {label: translate("Updater"), to: "/valetudo/updater"},
-        {label: translate("System information"), to: "/valetudo/system_information"},
-        {label: translate("Log"), to: "/valetudo/log"},
-        {label: translate("AI Assistant"), to: "/valetudo/ai"},
-        {label: translate("Help"), to: "/valetudo/help"},
-        {label: translate("About"), to: "/valetudo/about"}
+        {label: translate("Valetudo options"), description: translate("Configure the Valetudo service"), to: "/options/valetudo"},
+        {label: translate("Updater"), description: translate("Check and install Valetudo updates"), to: "/valetudo/updater"},
+        {label: translate("System information"), description: translate("Robot, firmware and service details"), to: "/valetudo/system_information"},
+        {label: translate("Log"), description: translate("View service logs for troubleshooting"), to: "/valetudo/log"},
+        {label: translate("AI Assistant"), description: translate("Chat with the built-in assistant"), to: "/valetudo/ai"},
+        {label: translate("Help"), description: translate("Documentation and troubleshooting"), to: "/valetudo/help"},
+        {label: translate("About"), description: translate("Version, license and project information"), to: "/valetudo/about"}
     ]
 }));
 const visibleLinks = computed(() => active.value === "cleaning" ? [] : links.value[active.value].filter(link =>
@@ -90,7 +90,7 @@ function select(category: Category) {void router.replace({path: "/options", quer
                 </template>
                 <SettingsSection v-else :title="categories.find(category => category.key === active)?.label ?? ''">
                     <div class="settings-link-grid">
-                        <RouterLink v-for="link in visibleLinks" :key="link.to" class="nav-card" :to="link.to"><strong>{{ link.label }}</strong><AppIcon name="chevron-right" /></RouterLink>
+                        <RouterLink v-for="link in visibleLinks" :key="link.to" class="nav-card" :to="link.to"><span class="min-w-0"><strong class="block">{{ link.label }}</strong><small class="muted block">{{ link.description }}</small></span><AppIcon name="chevron-right" /></RouterLink>
                     </div>
                 </SettingsSection>
                 <SettingsSection v-if="active === 'valetudo'" class="settings-mobile-preferences" :title='$t("Preferences")'>

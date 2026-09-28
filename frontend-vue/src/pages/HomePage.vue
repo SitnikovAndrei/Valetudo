@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed} from "vue";
+import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import {useQuery} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
@@ -12,6 +12,7 @@ import {useMapCleaning} from "../composables/useMapCleaning";
 import {useBasicControl} from "../composables/useBasicControl";
 import {valueLabel} from "../i18n/labels";
 import PageHeader from "../components/PageHeader.vue";
+import HomeMobileOverlay from "../components/HomeMobileOverlay.vue";
 import MapPanel from "../components/MapPanel.vue";
 import CleaningModePicker from "../components/CleaningModePicker.vue";
 import MapSelectionDetails from "../components/MapSelectionDetails.vue";
@@ -22,6 +23,24 @@ import HomeCommandIcon from "../components/HomeCommandIcon.vue";
 import AppIcon from "../components/AppIcon.vue";
 
 const props = defineProps<{capabilities: Capability[]; paletteMode: "light" | "dark"}>();
+const mapPanel = ref<InstanceType<typeof MapPanel>>();
+const phone = ref(false);
+let phoneMedia: MediaQueryList;
+function updatePhone() {
+    phone.value = phoneMedia.matches;
+    document.body.classList.toggle("home-fullscreen", phone.value);
+    requestAnimationFrame(() => mapPanel.value?.fitMap());
+}
+onMounted(() => {
+    phoneMedia = window.matchMedia("(max-width: 700px)");
+    phoneMedia.addEventListener("change", updatePhone);
+    updatePhone();
+});
+onBeforeUnmount(() => {
+    phoneMedia?.removeEventListener("change", updatePhone);
+    document.body.classList.remove("home-fullscreen");
+});
+
 const robot = useQuery({queryKey: ["robotInformation"], queryFn: fetchRobotInformation, retry: 1});
 const {query: attributes, status, batteries} = useRobotAttributes();
 const map = useRobotMap();
@@ -43,9 +62,12 @@ const roomNames = computed(() => cleaning.segments.value.map(segment => segment.
     <div class="home-page">
         <PageHeader class="home-header" :title='$t("Map and controls")' :subtitle='$t("Choose an area and an action for the current state.")' :kicker='$t("Robot vacuum")' />
         <section class="home-dashboard">
-            <MapPanel class="home-map" :map="map.data.value" :loading="map.isPending.value" :error="map.isError.value" :palette-mode="paletteMode"
+            <MapPanel ref="mapPanel" class="home-map" :map="map.data.value" :loading="map.isPending.value" :error="map.isError.value" :palette-mode="paletteMode"
                 :mode="mode === 'all' ? 'pan' : mode" :selected-segment-ids="cleaning.selectedSegmentIds.value" :zones="cleaning.zones.value" :target="cleaning.target.value" :room-names="roomNames"
                 @segment-click="cleaning.toggleSegment" @zone-created="cleaning.addZone" @zone-remove="cleaning.removeZone" @point-selected="cleaning.selectPoint" @retry="map.refetch()" />
+
+            <HomeMobileOverlay v-if="phone" :capabilities="capabilities" :attributes="attributes.data.value ?? []" :status="status" :batteries="batteries"
+                :cleaning="cleaning" :control="control" :map-available="!!map.data.value" :attributes-error="attributes.isError.value" @fit="mapPanel?.fitMap()" />
 
             <div class="panel home-actions">
                 <div class="home-action-status">
@@ -141,17 +163,17 @@ const roomNames = computed(() => cleaning.segments.value.map(segment => segment.
     .home-map { position: static; }
 }
 
-/* Phones: header hidden, commands pinned above the tab bar in a single row. */
+/* Phones: the map occupies the space between the app bars. */
 @media (max-width: 700px) {
-    .home-header, .home-action-status { display: none; }
-    .home-dashboard { gap: 12px; padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
-    .home-actions { margin-inline: -14px; padding: 16px 14px; border-inline: 0; border-radius: 0; }
-    .home-commands { display: none; }
-    .home-mobile-command {
-        position: fixed; z-index: 29; right: 0; bottom: calc(60px + env(safe-area-inset-bottom)); left: 0;
-        display: flex; align-items: center; gap: 6px; padding: 8px 14px;
-        border-top: 1px solid var(--app-border); background: var(--app-surface); box-shadow: 0 -8px 20px rgb(0 0 0 / 5%);
-    }
-    .home-mobile-command :deep(.home-map-action) { flex: 1; min-width: 0; min-height: 44px; }
+    .home-header, .home-actions, .home-status, .home-quiet-card, .home-mobile-command { display: none; }
+    .home-page { position: fixed; inset: 56px 0 calc(60px + env(safe-area-inset-bottom)); overflow: hidden; }
+    .home-dashboard { display: block; height: 100%; }
+    .home-map { position: absolute; inset: 0; height: 100%; margin: 0; border: 0; border-radius: 0; }
+    .home-map :deep(.map-panel-heading), .home-map :deep(.map-panel-footer) { display: none; }
+    .home-map :deep(.map-panel-viewport) { height: 100%; border: 0; }
+    .home-map :deep(.map-zoom) { right: auto; bottom: 210px; left: 12px; }
+    .home-map :deep(.map-zoom button) { width: 44px; height: 44px; }
+    .home-map :deep(.map-zoom button:last-child) { display: none; }
+    .home-map :deep(.map-carpet-legend) { top: 84px; bottom: auto; left: 12px; }
 }
 </style>

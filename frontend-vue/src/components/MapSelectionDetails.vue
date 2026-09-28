@@ -4,7 +4,7 @@ import Button from "primevue/button";
 import InputNumber from "primevue/inputnumber";
 import type {RawMapData} from "../api/RawMapData";
 import type {MapCleaning} from "../composables/useMapCleaning";
-import {translate} from "../i18n";
+import {useMapSelectionSummary} from "../composables/useMapSelectionSummary";
 import CoordinateInput from "./CoordinateInput.vue";
 import AppIcon from "./AppIcon.vue";
 
@@ -12,14 +12,7 @@ const props = defineProps<{cleaning: MapCleaning; map: RawMapData | null | undef
 const cleaning = props.cleaning;
 const mode = cleaning.mode;
 
-const summary = computed(() => {
-    switch (mode.value) {
-        case "all": return {title: translate("Whole home cleanup"), hint: translate("Regular full cleanup.")};
-        case "segments": return {title: translate("Rooms"), hint: cleaning.selectedSegmentIds.value.length ? translate("Selected rooms: {count}", {count: cleaning.selectedSegmentIds.value.length}) : translate("Tap rooms to select them.")};
-        case "zones": return {title: translate("Zone"), hint: cleaning.zones.value.length ? translate("Selected zones: {count}", {count: cleaning.zones.value.length}) : translate("Drag on the map to select an area.")};
-        default: return {title: translate("Go to point"), hint: cleaning.target.value ? translate("Destination selected.") : translate("Tap the destination on the map.")};
-    }
-});
+const summary = useMapSelectionSummary(cleaning);
 const unit = computed(() => props.map?.pixelSize ?? 1);
 const maxX = computed(() => props.map?.size.x ?? 0);
 const maxY = computed(() => props.map?.size.y ?? 0);
