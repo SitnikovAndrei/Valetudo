@@ -36,16 +36,24 @@ const carpetMaterials = [RawMapLayerMaterial.Carpet, RawMapLayerMaterial.CarpetL
 const hasCarpets = computed(() => props.map?.entities.some(entity => entity.type === RawMapEntityType.Carpet) === true
     || props.map?.layers.some(layer => layer.metaData.material !== undefined && carpetMaterials.includes(layer.metaData.material)) === true);
 
+function closeOnEscape(event: KeyboardEvent) {
+    if (event.key === "Escape") expanded.value = false;
+}
 watch(expanded, async value => {
     document.body.classList.toggle("map-expanded", value);
+    if (value) window.addEventListener("keydown", closeOnEscape);
+    else window.removeEventListener("keydown", closeOnEscape);
     await nextTick();
     requestAnimationFrame(() => canvas.value?.fitMap());
 });
-onBeforeUnmount(() => document.body.classList.remove("map-expanded"));
+onBeforeUnmount(() => {
+    document.body.classList.remove("map-expanded");
+    window.removeEventListener("keydown", closeOnEscape);
+});
 </script>
 
 <template>
-    <div class="panel map-panel" :class="{'map-panel--expanded': expanded}" @keydown.esc="expanded = false">
+    <div class="panel map-panel" :class="{'map-panel--expanded': expanded}">
         <div class="map-panel-heading">
             <div><span class="kicker">{{ $t("Robot map") }}</span><h2>{{ $t("Floor plan") }}</h2></div>
             <button v-if="map" class="icon-button" type="button" :aria-label="expanded ? $t('Close') : $t('Fullscreen')" :title="expanded ? $t('Close') : $t('Fullscreen')" :aria-pressed="expanded" @click="expanded = !expanded">
@@ -86,9 +94,9 @@ onBeforeUnmount(() => document.body.classList.remove("map-expanded"));
 .map-zoom :deep(.app-icon) { width: 18px; height: 18px; }
 .map-panel-footer { display: flex; flex-wrap: wrap; gap: 6px 16px; min-height: 44px; align-items: center; padding: 8px 20px; color: var(--app-secondary); font-size: var(--text-xs); }
 
-.map-panel--expanded { position: fixed; z-index: 50; inset: 8px; display: flex; flex-direction: column; margin: 0; box-shadow: var(--app-shadow); }
-.map-panel--expanded .map-panel-viewport { flex: 1; min-height: 0; height: auto; }
-.map-panel--expanded .map-panel-footer { display: none; }
+.map-panel.map-panel--expanded { position: fixed; z-index: 50; inset: 8px; display: flex; flex-direction: column; margin: 0; box-shadow: var(--app-shadow); }
+.map-panel.map-panel--expanded .map-panel-viewport { flex: 1; min-height: 0; height: auto; }
+.map-panel.map-panel--expanded .map-panel-footer { display: none; }
 
 @media (max-width: 900px) {
     .map-panel-viewport { height: clamp(400px, 60dvh, 620px); }

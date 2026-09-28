@@ -49,9 +49,6 @@
 .events-trigger svg { width: 20px; height: 20px; }
 .events-count { position: absolute; top: -3px; right: -3px; display: grid; min-width: 18px; height: 18px; padding: 0 4px; place-items: center; border: 2px solid var(--app-surface); border-radius: 9px; background: var(--app-accent); color: var(--app-on-accent); font-size: 10px; font-weight: 800; line-height: 1; }
 
-.markdown-content p { margin: 0 0 1rem; line-height: 1.6; }
-.markdown-content h3 { margin: 1.5rem 0 .75rem; font-size: var(--text-lg); font-weight: 700; }
-.markdown-content blockquote { margin: 1rem 0; padding-left: 1rem; border-left: 3px solid var(--app-border); }
 
 @media (max-width: 700px) {
     .panel, .settings-section { padding: 16px; }

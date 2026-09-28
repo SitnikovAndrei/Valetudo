@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {computed} from "vue";
 import {useQuery} from "@tanstack/vue-query";
-import Button from "primevue/button";
 import Message from "primevue/message";
 import {Capability, type ValetudoDataPoint} from "../api/types";
 import {RobotAttributeClass, type RobotAttribute} from "../api/RawRobotState";
@@ -40,15 +39,15 @@ function statLabel(type: ValetudoDataPoint["type"]): string {
             <Message v-if="statisticsError" severity="error">{{ hasTotalStatistics ? $t("Unable to load total statistics.") : $t("Unable to load current statistics.") }}</Message>
         </template>
         <div v-if="hasDockActions" class="dock-actions">
-            <Button v-if="capabilities.includes(Capability.AutoEmptyDockManualTrigger)" :label='$t("Empty dustbin")' outlined :disabled="dockMutation.isPending.value || !canEmpty" @click="dockMutation.mutate('empty')">
-                <template #icon><HomeDockActionIcon action="empty" /></template>
-            </Button>
-            <Button v-if="capabilities.includes(Capability.MopDockCleanManualTrigger)" :label="dockState === 'cleaning' ? $t('Stop mop cleaning') : $t('Clean mop')" outlined :disabled="dockMutation.isPending.value || !canClean" @click="dockMutation.mutate(dockState === 'cleaning' ? 'stop_clean' : 'clean')">
-                <template #icon><HomeDockActionIcon :action="dockState === 'cleaning' ? 'stop' : 'wash'" /></template>
-            </Button>
-            <Button v-if="capabilities.includes(Capability.MopDockDryManualTrigger)" :label="dockState === 'drying' ? $t('Stop mop drying') : $t('Dry mop')" outlined :disabled="dockMutation.isPending.value || !canDry" @click="dockMutation.mutate(dockState === 'drying' ? 'stop_dry' : 'dry')">
-                <template #icon><HomeDockActionIcon :action="dockState === 'drying' ? 'stop' : 'dry'" /></template>
-            </Button>
+            <button v-if="capabilities.includes(Capability.AutoEmptyDockManualTrigger)" type="button" class="dock-action" :title='$t("Empty dustbin")' :disabled="dockMutation.isPending.value || !canEmpty" @click="dockMutation.mutate('empty')">
+                <HomeDockActionIcon action="empty" /><span>{{ $t("Empty dustbin") }}</span>
+            </button>
+            <button v-if="capabilities.includes(Capability.MopDockCleanManualTrigger)" type="button" class="dock-action" :class="{'dock-action--active': dockState === 'cleaning'}" :title="dockState === 'cleaning' ? $t('Stop mop cleaning') : $t('Clean mop')" :disabled="dockMutation.isPending.value || !canClean" @click="dockMutation.mutate(dockState === 'cleaning' ? 'stop_clean' : 'clean')">
+                <HomeDockActionIcon :action="dockState === 'cleaning' ? 'stop' : 'wash'" /><span>{{ dockState === 'cleaning' ? $t("Stop mop cleaning") : $t("Clean mop") }}</span>
+            </button>
+            <button v-if="capabilities.includes(Capability.MopDockDryManualTrigger)" type="button" class="dock-action" :class="{'dock-action--active': dockState === 'drying'}" :title="dockState === 'drying' ? $t('Stop mop drying') : $t('Dry mop')" :disabled="dockMutation.isPending.value || !canDry" @click="dockMutation.mutate(dockState === 'drying' ? 'stop_dry' : 'dry')">
+                <HomeDockActionIcon :action="dockState === 'drying' ? 'stop' : 'dry'" /><span>{{ dockState === 'drying' ? $t("Stop mop drying") : $t("Dry mop") }}</span>
+            </button>
         </div>
         <Message v-if="dockMutation.isError.value" severity="error">{{ $t("A robot control request failed.") }}</Message>
     </div>
@@ -60,8 +59,10 @@ function statLabel(type: ValetudoDataPoint["type"]): string {
 .stat-list div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 2px; }
 .stat-list dt { color: var(--app-muted); font-size: var(--text-xs); }
 .stat-list dd { margin: 0; font-size: var(--text-base); font-weight: 700; }
-.dock-actions { display: grid; gap: 8px; margin-top: 6px; }
-.dock-actions :deep(.p-button) { justify-content: flex-start; width: 100%; }
-.dock-actions :deep(.p-button-label) { white-space: normal; text-align: left; }
-.dock-actions :deep(.home-dock-action-icon) { flex: 0 0 18px; width: 18px; height: 18px; }
+.dock-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.dock-action { display: grid; justify-items: center; align-content: center; gap: 6px; min-width: 0; min-height: 76px; padding: 10px 6px; border: 1px solid var(--app-border); border-radius: var(--radius-md); background: var(--app-surface-soft); color: var(--app-text); font: inherit; font-size: var(--text-xs); line-height: 1.25; text-align: center; cursor: pointer; }
+.dock-action:hover:not(:disabled) { border-color: var(--app-accent); color: var(--app-accent); }
+.dock-action--active { border-color: var(--app-accent); background: var(--app-accent-soft); color: var(--app-accent); }
+.dock-action:disabled { opacity: .5; cursor: default; }
+.dock-action :deep(.home-dock-action-icon) { width: 24px; height: 24px; color: var(--app-accent); }
 </style>

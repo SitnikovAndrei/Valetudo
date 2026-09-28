@@ -58,9 +58,6 @@ export const routes: RouteRecordRaw[] = [
     {path: "/valetudo/system_information", component: () => import("./pages/SystemInformationPage.vue"), meta: {title: "System information", parent: settings("valetudo")}},
     {path: "/valetudo/log", component: () => import("./pages/LogPage.vue"), meta: {title: "Log", parent: settings("valetudo")}},
     {path: "/valetudo/updater", component: () => import("./pages/UpdaterPage.vue"), meta: {title: "Updater", parent: settings("valetudo")}},
-    {path: "/valetudo/ai", component: () => import("./pages/AIPage.vue"), meta: {title: "AI Assistant", parent: settings("valetudo")}},
-    {path: "/valetudo/help", component: () => import("./pages/MarkdownPage.vue"), props: {page: "help"}, meta: {title: "Help", parent: settings("valetudo")}},
-    {path: "/valetudo/about", component: () => import("./pages/MarkdownPage.vue"), props: {page: "about"}, meta: {title: "About", parent: settings("valetudo")}},
 
     {path: "/:pathMatch(.*)*", redirect: "/"}
 ];

@@ -27,7 +27,7 @@ const categories = computed<{key: Category; label: string}[]>(() => [
     {key: "map", label: translate("Map")},
     {key: "connectivity", label: translate("Connectivity")},
     {key: "robot", label: translate("Robot")},
-    {key: "valetudo", label: translate("Valetudo")}
+    {key: "valetudo", label: translate("Miscellaneous")}
 ]);
 const active = computed<Category>(() => categories.value.some(category => category.key === route.query.section) ? route.query.section as Category : "cleaning");
 const hasPresets = computed(() => props.capabilities.some(capability => [Capability.FanSpeedControl, Capability.WaterUsageControl, Capability.OperationModeControl].includes(capability)));
@@ -60,10 +60,7 @@ const links = computed<Record<Exclude<Category, "cleaning">, Link[]>>(() => ({
         {label: translate("Valetudo options"), description: translate("Configure the Valetudo service"), to: "/options/valetudo"},
         {label: translate("Updater"), description: translate("Check and install Valetudo updates"), to: "/valetudo/updater"},
         {label: translate("System information"), description: translate("Robot, firmware and service details"), to: "/valetudo/system_information"},
-        {label: translate("Log"), description: translate("View service logs for troubleshooting"), to: "/valetudo/log"},
-        {label: translate("AI Assistant"), description: translate("Chat with the built-in assistant"), to: "/valetudo/ai"},
-        {label: translate("Help"), description: translate("Documentation and troubleshooting"), to: "/valetudo/help"},
-        {label: translate("About"), description: translate("Version, license and project information"), to: "/valetudo/about"}
+        {label: translate("Log"), description: translate("View service logs for troubleshooting"), to: "/valetudo/log"}
     ]
 }));
 const visibleLinks = computed(() => active.value === "cleaning" ? [] : links.value[active.value].filter(link =>
