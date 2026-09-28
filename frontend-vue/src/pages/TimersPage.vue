@@ -3,6 +3,7 @@ import {computed, ref} from "vue";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
+import ToggleSwitch from "primevue/toggleswitch";
 import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
@@ -107,7 +108,7 @@ function changeAction(type: ValetudoTimerActionType) {
             </div>
             <Dialog :visible="Boolean(draft)" modal :header="draft?.id ? $t('Edit timer') : $t('Add timer')" class="w-[min(95vw,42rem)]" @update:visible="draft = undefined">
                 <div v-if="draft" class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto px-1">
-                    <label class="flex items-center gap-2"><Checkbox v-model="draft.enabled" binary /> {{ $t("Enabled") }}</label>
+                    <label class="flex items-center gap-2"><ToggleSwitch v-model="draft.enabled" :aria-label='$t("Enabled")' /> {{ $t("Enabled") }}</label>
                     <label class="flex flex-col gap-1">{{ $t("Custom label") }} <InputText v-model="draft.label" maxlength="24" /></label>
                     <fieldset><legend class="mb-2 font-semibold">{{ $t("Days") }}</legend><div class="flex flex-wrap gap-3"><label v-for="day in weekdays" :key="day.value" class="flex items-center gap-1"><Checkbox :model-value="draft.dow.includes(day.value)" binary @update:model-value="toggleDay(day.value)" /> {{ day.label }}</label></div></fieldset>
                     <label class="flex flex-col gap-1">{{ $t("Time") }} ({{ Intl.DateTimeFormat().resolvedOptions().timeZone }}) <TimeInput v-model="localTime" :label='$t("Time")' /></label>

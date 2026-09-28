@@ -30,6 +30,8 @@ defineEmits<{
 const canvas = ref<InstanceType<typeof MapCanvas>>();
 defineExpose({fitMap: () => canvas.value?.fitMap()});
 const expanded = ref(false);
+const moveMap = ref(false);
+watch(() => props.mode, () => {moveMap.value = false;});
 const carpetMaterials = [RawMapLayerMaterial.Carpet, RawMapLayerMaterial.CarpetLow, RawMapLayerMaterial.CarpetHigh];
 const hasCarpets = computed(() => props.map?.entities.some(entity => entity.type === RawMapEntityType.Carpet) === true
     || props.map?.layers.some(layer => layer.metaData.material !== undefined && carpetMaterials.includes(layer.metaData.material)) === true);
@@ -54,11 +56,12 @@ onBeforeUnmount(() => document.body.classList.remove("map-expanded"));
         <div v-else-if="error" class="async-state"><Message severity="error">{{ $t("Unable to load map data.") }}</Message><Button :label='$t("Retry")' outlined @click="$emit('retry')" /></div>
         <div v-else-if="!map" class="async-state">{{ $t("No map data reported.") }}</div>
         <div v-else class="map-panel-viewport">
-            <MapCanvas ref="canvas" :map="map" :palette-mode="paletteMode" :mode="mode" :selected-segment-ids="selectedSegmentIds" :zones="zones" :target="target"
+            <MapCanvas ref="canvas" :map="map" :palette-mode="paletteMode" :mode="moveMap ? 'pan' : mode" :selected-segment-ids="selectedSegmentIds" :zones="zones" :target="target"
                 @segment-click="id => $emit('segment-click', id)" @zone-created="zone => $emit('zone-created', zone)"
                 @zone-remove="index => $emit('zone-remove', index)" @point-selected="point => $emit('point-selected', point)" />
             <div v-if="hasCarpets" class="map-overlay map-carpet-legend"><span aria-hidden="true" />{{ $t("Carpets") }}</div>
             <div class="map-overlay map-zoom" role="group" :aria-label='$t("Map zoom")'>
+                <button v-if="mode === 'zones' || mode === 'goto'" type="button" :aria-label='$t("Move map")' :title='$t("Move map")' :aria-pressed="moveMap" @click="moveMap = !moveMap"><AppIcon name="hand" /></button>
                 <button type="button" :aria-label='$t("Zoom in")' :title='$t("Zoom in")' @click="canvas?.zoomIn()"><AppIcon name="plus" /></button>
                 <button type="button" :aria-label='$t("Zoom out")' :title='$t("Zoom out")' @click="canvas?.zoomOut()"><AppIcon name="minus" /></button>
                 <button type="button" :aria-label='$t("Fit map")' :title='$t("Fit map")' @click="canvas?.fitMap()"><AppIcon name="fit" /></button>
@@ -78,7 +81,7 @@ onBeforeUnmount(() => document.body.classList.remove("map-expanded"));
 .map-carpet-legend span { width: 15px; height: 15px; border: 1px solid var(--map-carpet-border); border-radius: 3px; background: repeating-linear-gradient(135deg, var(--map-carpet-fill) 0 3px, var(--map-carpet-line) 3px 4px); }
 .map-zoom { right: 12px; bottom: 12px; display: grid; overflow: hidden; }
 .map-zoom button { display: grid; width: 40px; height: 40px; place-items: center; border: 0; background: transparent; color: var(--app-text); cursor: pointer; }
-.map-zoom button:hover { background: var(--app-accent-soft); color: var(--app-accent); }
+.map-zoom button[aria-pressed="true"], .map-zoom button:hover { background: var(--app-accent-soft); color: var(--app-accent); }
 .map-zoom button + button { border-top: 1px solid var(--app-border); }
 .map-zoom :deep(.app-icon) { width: 18px; height: 18px; }
 .map-panel-footer { display: flex; flex-wrap: wrap; gap: 6px 16px; min-height: 44px; align-items: center; padding: 8px 20px; color: var(--app-secondary); font-size: var(--text-xs); }

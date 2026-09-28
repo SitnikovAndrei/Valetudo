@@ -24,7 +24,6 @@ declare module "vue-router" {
 const settings = (section: SettingsSection) => ({to: {path: "/options", query: {section}}, label: "Settings"});
 const mapOptions = {to: "/options/map_management", label: "Map options"};
 const connectivity = {to: "/options/connectivity", label: "Connectivity"};
-const robotOptions = {to: "/options/robot", label: "Robot options"};
 
 export const routes: RouteRecordRaw[] = [
     {path: "/", component: HomePage, meta: {title: "Map and controls"}},
@@ -50,8 +49,8 @@ export const routes: RouteRecordRaw[] = [
     {path: "/options/connectivity/wifi", component: () => import("./pages/WifiConnectivityPage.vue"), meta: {title: "Wi-Fi connectivity", parent: connectivity, requires: [Capability.WifiConfiguration]}},
 
     {path: "/options/robot", component: () => import("./pages/RobotOptionsPage.vue"), meta: {title: "Robot options", parent: settings("robot")}},
-    {path: "/options/robot/system", component: () => import("./pages/SystemRobotOptionsPage.vue"), meta: {title: "Robot system options", parent: robotOptions}},
-    {path: "/options/robot/quirks", component: () => import("./pages/QuirksPage.vue"), meta: {title: "Quirks", parent: robotOptions, requires: [Capability.Quirks]}},
+    {path: "/options/robot/system", component: () => import("./pages/SystemRobotOptionsPage.vue"), meta: {title: "Robot system options", parent: settings("robot")}},
+    {path: "/options/robot/quirks", component: () => import("./pages/QuirksPage.vue"), meta: {title: "Quirks", parent: settings("robot"), requires: [Capability.Quirks]}},
     {path: "/robot/manual_control", component: () => import("./pages/ManualControlPage.vue"), meta: {title: "Manual control", parent: settings("robot"), requires: [Capability.ManualControl, Capability.HighResolutionManualControl]}},
     {path: "/robot/camera", component: () => import("./pages/CameraPage.vue"), meta: {title: "Camera", parent: settings("robot"), requiresCamera: true}},
 

@@ -41,6 +41,8 @@ const canvas = ref<HTMLCanvasElement>();
 const layers = new MapLayerManager();
 const viewport = new MapViewport();
 const gestures = new MapGestures();
+let spaceHeld = false;
+let forcePan = false;
 let observer: ResizeObserver | undefined;
 let layerUpdate = Promise.resolve();
 let disposed = false;
@@ -327,7 +329,7 @@ function drawInteractionOverlays(ctx: CanvasRenderingContext2D) {
     }
     if (props.mode === "zones") props.zones.forEach(zone => drawZoneDeleteButton(ctx, zone));
     const preview = gestures.preview;
-    if (DRAW_MODES.includes(props.mode) && preview) {
+    if (!forcePan && DRAW_MODES.includes(props.mode) && preview) {
         const a = mapPoint(preview.start);
         const b = mapPoint(preview.current);
         ctx.strokeStyle = accent;
@@ -422,6 +424,25 @@ const keyActions: Record<string, () => void> = {
     "0": () => viewport.fit(props.map)
 };
 
+function onSpaceKey(event: KeyboardEvent) {
+    if (event.code !== "Space") return;
+    if (event.type === "keyup") {
+        spaceHeld = false;
+        return;
+    }
+    if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select, button, [contenteditable='true'], [role='textbox']")) return;
+    spaceHeld = true;
+    event.preventDefault();
+}
+
+function clearSpace() {
+    spaceHeld = false;
+}
+
+function requestsPan(event: PointerEvent) {
+    return event.pointerType === "mouse" && (event.button === 1 || event.button === 2 || (event.buttons & 6) !== 0 || spaceHeld);
+}
+
 function onKeyDown(event: KeyboardEvent) {
     const action = keyActions[event.key];
     if (!action || !canvas.value) return;
@@ -448,10 +469,12 @@ function findEditableEntity(world: Point): number {
 }
 
 function onPointerDown(event: PointerEvent) {
+    if (gestures.pointerCount === 0) forcePan = requestsPan(event);
+    if (forcePan) event.preventDefault();
     canvas.value?.setPointerCapture(event.pointerId);
     const point = eventPoint(event);
     gestures.startPointer(event.pointerId, point);
-    if (props.mode === "pan" && props.editableEntities?.length && gestures.pointerCount === 1) {
+    if (!forcePan && props.mode === "pan" && props.editableEntities?.length && gestures.pointerCount === 1) {
         const world = mapPoint(point);
         const index = findEditableEntity(world);
         if (index >= 0) draggedEntity = {index, start: world, points: [...props.editableEntities[index].points]};
@@ -478,12 +501,17 @@ function onPointerMove(event: PointerEvent) {
     const point = eventPoint(event);
     const gesture = gestures.movePointer(event.pointerId, point);
     if (!gesture) return;
+    if (requestsPan(event) && !forcePan) {
+        forcePan = true;
+        if (draggedEntity) emit("entity-updated", draggedEntity.index, draggedEntity.points);
+        draggedEntity = undefined;
+    }
     if (gesture.kind === "pinch") {
         viewport.pan(gesture.pan);
         viewport.zoom(gesture.factor, gesture.center);
     } else if (draggedEntity) {
         dragEntity(point);
-    } else if (!DRAW_MODES.includes(props.mode) || gesture.afterPinch) {
+    } else if (forcePan || !DRAW_MODES.includes(props.mode) || gesture.afterPinch) {
         viewport.pan({x: point.x - gesture.previous.x, y: point.y - gesture.previous.y});
     }
     scheduleDraw();
@@ -511,8 +539,9 @@ function onPointerUp(event: PointerEvent, cancelled = false) {
     const gesture = gestures.endPointer(event.pointerId, point, cancelled);
     if (!gesture) return;
     if (cancelled && draggedEntity) emit("entity-updated", draggedEntity.index, draggedEntity.points);
-    if (!cancelled && !draggedEntity && !gesture.afterPinch && gestures.pointerCount === 0) handleGestureEnd(point, gesture.tap, gesture.start, gesture.moved);
+    if (!forcePan && !cancelled && !draggedEntity && !gesture.afterPinch && gestures.pointerCount === 0) handleGestureEnd(point, gesture.tap, gesture.start, gesture.moved);
     draggedEntity = undefined;
+    if (gestures.pointerCount === 0) forcePan = false;
     scheduleDraw();
 }
 
@@ -548,6 +577,9 @@ watch(() => props.editableEntities, scheduleDraw, {deep: true});
 watch(() => [props.zones, props.target, props.mode, props.editLine, props.coverage], scheduleDraw);
 watch([aprilFools, activated, locale], scheduleDraw);
 onMounted(() => {
+    window.addEventListener("keydown", onSpaceKey);
+    window.addEventListener("keyup", onSpaceKey);
+    window.addEventListener("blur", clearSpace);
     observer = new ResizeObserver(resize);
     observer.observe(canvas.value!);
     resize();
@@ -556,6 +588,9 @@ onMounted(() => {
     void document.fonts?.ready.then(scheduleDraw);
 });
 onBeforeUnmount(() => {
+    window.removeEventListener("keydown", onSpaceKey);
+    window.removeEventListener("keyup", onSpaceKey);
+    window.removeEventListener("blur", clearSpace);
     disposed = true;
     if (frame) cancelAnimationFrame(frame);
     observer?.disconnect();
@@ -565,6 +600,6 @@ onBeforeUnmount(() => {
 
 <template>
     <canvas ref="canvas" class="h-full w-full touch-none" :aria-label='$t("Robot map; arrows pan, plus and minus zoom, zero fits")' tabindex="0"
-        @wheel="onWheel" @pointerdown="onPointerDown" @pointermove="onPointerMove"
+        @contextmenu.prevent @wheel="onWheel" @pointerdown="onPointerDown" @pointermove="onPointerMove"
         @pointerup="onPointerUp" @pointercancel="event => onPointerUp(event, true)" @keydown="onKeyDown" />
 </template>

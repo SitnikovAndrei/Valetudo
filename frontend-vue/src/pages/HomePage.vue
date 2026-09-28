@@ -94,7 +94,7 @@ const roomNames = computed(() => cleaning.segments.value.map(segment => segment.
                 <Message v-if="cleaning.zoneProperties.isError.value && mode === 'zones'" severity="error">{{ $t("Unable to load zone limits.") }}</Message>
 
                 <div v-if="hasPresets" class="home-presets">
-                    <PresetSettings :capabilities="capabilities" :attributes="attributes.data.value ?? []" compact />
+                    <PresetSettings :capabilities="capabilities" :attributes="attributes.data.value ?? []" compact variant="segmented" />
                 </div>
             </div>
 

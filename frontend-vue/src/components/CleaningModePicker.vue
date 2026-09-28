@@ -3,7 +3,7 @@ import type {CleaningMode} from "../composables/useMapCleaning";
 import type {IconName} from "./icons";
 import AppIcon from "./AppIcon.vue";
 
-defineProps<{modes: CleaningMode[]; modelValue: CleaningMode; mapAvailable: boolean}>();
+defineProps<{modes: CleaningMode[]; modelValue: CleaningMode; mapAvailable: boolean; hideIcons?: boolean}>();
 defineEmits<{"update:modelValue": [mode: CleaningMode]}>();
 
 const options: Record<CleaningMode, {label: string; icon: IconName}> = {
@@ -17,7 +17,7 @@ const options: Record<CleaningMode, {label: string; icon: IconName}> = {
 <template>
     <div class="mode-picker" :style="{'--mode-count': modes.length}" role="group" :aria-label='$t("Cleaning area")'>
         <button v-for="mode in modes" :key="mode" type="button" :aria-pressed="modelValue === mode" :disabled="mode !== 'all' && !mapAvailable" @click="$emit('update:modelValue', mode)">
-            <AppIcon :name="options[mode].icon" />{{ $t(options[mode].label) }}
+            <AppIcon v-if="!hideIcons" :name="options[mode].icon" />{{ $t(options[mode].label) }}
         </button>
     </div>
 </template>

@@ -919,4 +919,12 @@ export const ru: Record<string, string> = {
     "Minutes": "Минуты",
     "Select a zone": "Выделите зону",
     "Unable to load current statistics.": "Не удалось загрузить текущую статистику.",
+    "Move map": "Переместить карту",
+    "Draw a zone with one finger, move the map with two fingers or the hand button.": "Рисуйте зону одним пальцем, двигайте карту двумя или кнопкой руки.",
+    "Drag on the map to select an area. Use the hand button or right mouse button to move the map.": "Выделите область перетаскиванием. Двигайте карту кнопкой руки или правой кнопкой мыши.",
+    "Tap a destination. Move the map with two fingers or the hand button.": "Выберите точку. Двигайте карту двумя пальцами или кнопкой руки.",
+    "Tap a destination. Use the hand button or right mouse button to move the map.": "Выберите точку. Двигайте карту кнопкой руки или правой кнопкой мыши.",
+    "fan_speed_control": "Мощность всасывания",
+    "water_usage_control": "Подача воды",
+    "operation_mode_control": "Режим уборки",
 };

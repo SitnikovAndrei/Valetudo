@@ -34,7 +34,7 @@ const props = defineProps<{
 defineEmits<{fit: []}>();
 const cleaning = props.cleaning;
 const control = props.control;
-const summary = useMapSelectionSummary(cleaning);
+const summary = useMapSelectionSummary(cleaning, true);
 const settingsOpen = ref(false);
 const dockOpen = ref(false);
 const hasBasic = computed(() => props.capabilities.includes(Capability.BasicControl));
@@ -79,7 +79,7 @@ const setQuirk = useMutation({mutationFn: sendSetQuirkValueCommand, onSuccess: (
             <button type="button" :disabled="!mapAvailable" :aria-label='$t("Fit map")' @click="$emit('fit')"><AppIcon name="fit" /><span>{{ $t("Fit") }}</span></button>
         </div>
         <div class="mobile-bottom">
-            <CleaningModePicker :modes="cleaning.modes.value" :model-value="cleaning.mode.value" :map-available="mapAvailable" @update:model-value="cleaning.setMode" />
+            <CleaningModePicker hide-icons :modes="cleaning.modes.value" :model-value="cleaning.mode.value" :map-available="mapAvailable" @update:model-value="cleaning.setMode" />
             <p class="mobile-selection" :title="summary.hint">{{ summary.hint }}</p>
             <div class="mobile-command-row">
                 <Button v-if="hasBasic" class="mobile-command" rounded outlined :aria-label='$t(control.label("stop"))' :title='$t(control.label("stop"))' :disabled="busy || !control.enabled('stop')" :loading="control.running('stop')" @click="control.send('stop')"><template #icon><HomeCommandIcon action="stop" /></template></Button>
@@ -117,10 +117,10 @@ const setQuirk = useMutation({mutationFn: sendSetQuirkValueCommand, onSuccess: (
 .mobile-tools .app-icon { width: 22px; height: 22px; }
 .mobile-tools button:disabled { opacity: .5; cursor: default; }
 .mobile-bottom { position: absolute; bottom: 0; left: 0; right: 0; display: grid; gap: 6px; padding: 12px 14px 10px; }
-.mobile-bottom :deep(.mode-picker) { grid-template-columns: repeat(var(--mode-count), minmax(0, 1fr)); gap: 2px; padding: 4px; border: 1px solid var(--app-border); border-radius: 28px; background: var(--app-surface); }
-.mobile-bottom :deep(.mode-picker button) { min-height: 44px; border: 0; border-radius: 24px; font-size: var(--text-xs); }
-.mobile-bottom :deep(.mode-picker .app-icon) { display: none; }
-.mobile-selection { margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center; font-size: var(--text-xs); color: var(--app-muted); border-radius: var(--radius-sm); background: var(--app-surface); }
+.mobile-bottom :deep(.mode-picker) { grid-template-columns: repeat(var(--mode-count), minmax(0, 1fr)); gap: 2px; padding: 3px; border: 1px solid var(--app-border); border-radius: 28px; background: var(--app-surface); }
+.mobile-bottom :deep(.mode-picker button) { display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; min-width: 0; height: 32px; min-height: 32px; gap: 0; padding: 0 4px; border: 0; border-radius: 24px; font-size: var(--text-xs); }
+.mobile-bottom :deep(.mode-picker button[aria-pressed="true"]) { background: var(--app-accent-soft); color: var(--app-accent); }
+.mobile-selection { justify-self: center; max-width: 100%; margin: 0; padding: 2px 8px; text-align: center; font-size: 11px; line-height: 1.3; color: var(--app-muted); border-radius: var(--radius-sm); background: var(--app-surface); }
 .mobile-command-row { display: flex; justify-content: center; align-items: flex-start; gap: 28px; pointer-events: none; }
 .mobile-command { width: 48px; height: 48px; margin-top: 10px; background: var(--app-surface); color: var(--app-text); border-color: var(--app-border); pointer-events: auto; }
 .mobile-primary { display: grid; justify-items: center; gap: 4px; max-width: 160px; }

@@ -82,7 +82,7 @@ function select(category: Category) {void router.replace({path: "/options", quer
                 <template v-if="active === 'cleaning'">
                     <SettingsSection :title='$t("Cleaning")' :description='$t("Choose the available cleaning modes and schedules.")'>
                         <AsyncState v-if="hasPresets" :loading="attributes.isPending.value" :error="attributes.isError.value" :error-text='$t("Unable to load robot state.")' @retry="attributes.refetch()">
-                            <PresetSettings :capabilities="capabilities" :attributes="attributes.data.value ?? []" />
+                            <PresetSettings :capabilities="capabilities" :attributes="attributes.data.value ?? []" variant="segmented" />
                         </AsyncState>
                         <SettingRow :name='$t("Timers")' :description='$t("Create and manage cleaning schedules")'><RouterLink class="link-button" to="/valetudo/timers">{{ $t("Open") }}<AppIcon name="chevron-right" /></RouterLink></SettingRow>
                     </SettingsSection>

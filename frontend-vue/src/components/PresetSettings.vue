@@ -60,6 +60,6 @@ const routeMutation = useMutation({mutationFn: (value: CleanRoute) => sendCleanR
 .segmented-preset h3 { margin: 0; font-size: var(--text-sm); font-weight: 600; }
 .segmented-preset h3 span { color: var(--app-accent); }
 .segmented-preset :deep(.p-selectbutton) { display: flex; flex-wrap: wrap; gap: 6px; }
-.segmented-preset :deep(.p-togglebutton) { flex: 1 1 auto; min-height: 44px; border-radius: var(--radius-sm); }
+.segmented-preset :deep(.p-togglebutton) { flex: 1 1 auto; min-width: 0; min-height: 44px; white-space: normal; border-radius: var(--radius-sm); }
 .segmented-preset :deep(.p-togglebutton-checked), .segmented-preset :deep(.p-togglebutton-checked .p-togglebutton-content) { background: var(--app-accent); color: var(--app-on-accent); }
 </style>
