@@ -25,6 +25,10 @@
 .setting-row-copy small { display: block; margin-top: 2px; color: var(--app-muted); font-size: var(--text-xs); }
 /* One width for every select in a settings list keeps the right edge aligned. */
 .setting-row .p-select, .setting-select { width: 13rem; max-width: 100%; }
+.setting-row--stacked { flex-direction: column; align-items: stretch; gap: 10px; }
+.setting-row--stacked > :last-child:not(.setting-row-copy) { width: 100%; }
+.setting-row--stacked .p-selectbutton { display: flex; width: 100%; }
+.setting-row--stacked .p-selectbutton .p-togglebutton { flex: 1 1 0; min-width: 0; white-space: normal; }
 
 .nav-card { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 60px; padding: 14px 16px; border: 1px solid var(--app-border); border-radius: var(--radius-md); background: var(--app-surface-soft); color: var(--app-text); text-decoration: none; }
 .nav-card:hover { border-color: var(--app-accent); background: var(--app-accent-soft); }
@@ -51,6 +55,9 @@
 
 
 @media (max-width: 700px) {
+    .page-header h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .page-header-title-only { margin: 0; gap: 0; }
+    .page-header-subtitle { margin-top: 0; }
     .panel, .settings-section { padding: 16px; }
     .setting-row { flex-wrap: wrap; align-items: flex-start; }
     .setting-row > :last-child:not(.setting-row-copy) { width: 100%; }

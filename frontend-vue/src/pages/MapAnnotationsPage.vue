@@ -11,6 +11,7 @@ import {useRobotMap} from "../composables/useRobotMap";
 import {useRobotAttributes} from "../composables/useRobotAttributes";
 import MapCanvas from "../components/MapCanvas.vue";
 import {cloneJson} from "../cloneJson";
+import {translate} from "../i18n";
 import {valueLabel} from "../i18n/labels";
 import PageHeader from "../components/PageHeader.vue";
 
@@ -21,6 +22,12 @@ const map = useRobotMap();
 const {status} = useRobotAttributes();
 const properties = useQuery({queryKey: ["mapAnnotationsProperties"], queryFn: fetchMapAnnotationsProperties, enabled: props.capabilities.includes(Capability.MapAnnotations)});
 const annotationTypes = [RawMapEntityType.Threshold, RawMapEntityType.Curtain, RawMapEntityType.Ramp];
+const addLabels: Record<string, string> = {
+    [ValetudoMapAnnotationType.Threshold]: "Add threshold",
+    [ValetudoMapAnnotationType.Curtain]: "Add curtain",
+    [ValetudoMapAnnotationType.Ramp]: "Add ramp"
+};
+function addLabel(type: string) {return addLabels[type] ? translate(addLabels[type]) : `${translate("Add")} ${valueLabel(type)}`;}
 const mode = ref<"pan" | ValetudoMapAnnotationType>("pan");
 const draft = ref<RawMapEntity[]>([]);
 const original = ref<RawMapEntity[]>([]);
@@ -57,9 +64,9 @@ function moveEntity(index: number, points: number[]) {if (canEdit.value && draft
             <Message v-else-if="map.isError.value || properties.isError.value" severity="error">{{ $t("Unable to load map or annotation types.") }}</Message>
             <template v-else-if="displayedMap">
                 <Message v-if="!canEdit" severity="info" class="mb-3">{{ $t("Dock the robot to edit annotations.") }}</Message>
-                <div class="mb-3 flex flex-wrap gap-2"><Button :label='$t("Pan")' :outlined="mode !== 'pan'" @click="mode = 'pan'" /><Button v-for="type in properties.data.value?.supportedAnnotationTypes" :key="type" :label="`${$t('Add')} ${valueLabel(type)}`" :disabled="!canEdit" :outlined="mode !== type" @click="mode = type" /></div>
+                <div class="mb-3 flex flex-wrap gap-2"><Button :label='$t("Pan")' :outlined="mode !== 'pan'" @click="mode = 'pan'" /><Button v-for="type in properties.data.value?.supportedAnnotationTypes" :key="type" :label="addLabel(type)" :disabled="!canEdit" :outlined="mode !== type" @click="mode = type" /></div>
                 <p class="muted mb-2 text-sm">{{ mode === 'pan' ? $t("Drag an existing annotation to move it; drag elsewhere or pinch to move the map.") : $t("Drag on the map to draw the annotation.") }}</p>
-                <div class="h-[min(60vh,600px)] overflow-hidden rounded-xl" style="background: var(--app-bg)"><MapCanvas :map="displayedMap" :palette-mode="paletteMode" :mode="mode === 'pan' ? 'pan' : mode === ValetudoMapAnnotationType.Ramp ? 'rectangle' : 'line'" :selected-segment-ids="[]" :zones="[]" :editable-entities="canEdit ? draft : []" @shape-created="addShape" @entity-updated="moveEntity" /></div>
+                <div class="h-[min(60vh,600px)] overflow-hidden rounded-xl" style="background: var(--app-bg)"><MapCanvas :map="displayedMap" :palette-mode="paletteMode" :mode="mode === 'pan' ? 'pan' : mode === ValetudoMapAnnotationType.Ramp ? 'rectangle' : 'line'" :selected-segment-ids="[]" :zones="[]" :editable-entities="canEdit ? draft : []" @shape-created="addShape" @entity-updated="moveEntity" @entity-remove="index => draft.splice(index, 1)" /></div>
                 <div v-for="(entity, index) in draft" :key="index" class="border-b py-3" style="border-color: var(--app-border)"><div class="mb-2 flex items-center justify-between"><strong>{{ valueLabel(entity.type) }}</strong><Button :label='$t("Remove")' text severity="danger" :disabled="!canEdit" @click="draft.splice(index, 1)" /></div><div class="flex flex-wrap gap-2"><label v-for="(coordinate, pointIndex) in entity.points" :key="pointIndex" class="flex items-center gap-1 text-sm">{{ pointIndex % 2 ? 'Y' : 'X' }}{{ Math.floor(pointIndex / 2) + 1 }} <InputNumber :model-value="coordinate" :disabled="!canEdit" :min="0" :max="pointIndex % 2 ? maxY : maxX" :use-grouping="false" input-class="w-24" @update:model-value="setCoordinate(index, pointIndex, $event)" /></label></div></div>
                 <div class="mt-4 flex gap-2"><Button :label='$t("Save")' :disabled="!dirty || !canEdit || save.isPending.value" :loading="save.isPending.value" @click="save.mutate()" /><Button :label='$t("Discard")' outlined :disabled="!dirty" @click="discard" /></div>
                 <Message v-if="save.isError.value" severity="error" class="mt-3">{{ $t("Unable to save annotations.") }}</Message>

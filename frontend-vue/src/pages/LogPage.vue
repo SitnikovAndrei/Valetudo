@@ -29,12 +29,13 @@ function refresh() {
 
 <template>
     <div class="page">
-        <PageHeader :title="$t('Log')" />
+        <PageHeader :title="$t('Log')">
+            <template #actions><Button :label='$t("Refresh")' :loading="log.isFetching.value" outlined @click="refresh" /></template>
+        </PageHeader>
         <section class="panel">
-            <div class="mb-5 flex flex-wrap items-center gap-3">
-                <label class="flex flex-1 flex-col gap-1">{{ $t("Filter") }} <input v-model="filter" type="search" class="rounded-lg border p-2" style="background: var(--app-surface); border-color: var(--app-border)" /></label>
-                <label class="flex flex-col gap-1">{{ $t("Current level") }} <Select :model-value="level.data.value?.current" :options="(level.data.value?.presets ?? []).map(value => ({label: valueLabel(value), value}))" option-label="label" option-value="value" :disabled="level.isPending.value || changeLevel.isPending.value" @update:model-value="value => changeLevel.mutate({level: value as LogLevel})" /></label>
-                <Button :label='$t("Refresh")' :loading="log.isFetching.value" outlined @click="refresh" />
+            <div class="mb-5 flex flex-wrap items-end gap-3">
+                <label class="flex min-w-[200px] flex-1 flex-col gap-1">{{ $t("Filter") }} <input v-model="filter" type="search" class="h-10 rounded-lg border px-3" style="background: var(--app-surface); border-color: var(--app-border)" /></label>
+                <label class="flex min-w-[160px] flex-1 flex-col gap-1 sm:flex-none">{{ $t("Current level") }} <Select :model-value="level.data.value?.current" :options="(level.data.value?.presets ?? []).map(value => ({label: valueLabel(value), value}))" option-label="label" option-value="value" :disabled="level.isPending.value || changeLevel.isPending.value" @update:model-value="value => changeLevel.mutate({level: value as LogLevel})" /></label>
             </div>
             <p v-if="log.isPending.value" role="status">{{ $t("Loading log…") }}</p>
             <Message v-else-if="log.isError.value || level.isError.value || changeLevel.isError.value" severity="error">{{ $t("Unable to load or change the log.") }}</Message>

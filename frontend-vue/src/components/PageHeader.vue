@@ -4,7 +4,7 @@ defineProps<{title: string; subtitle?: string; kicker?: string}>();
 </script>
 
 <template>
-    <header class="page-header">
+    <header class="page-header" :class="{'page-header-title-only': !subtitle && !kicker && !$slots.actions}">
         <div class="page-header-copy">
             <p v-if="kicker" class="kicker">{{ kicker }}</p>
             <h1>{{ title }}</h1>

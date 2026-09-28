@@ -33,7 +33,7 @@ const setQuirk = useMutation({mutationFn: sendSetQuirkValueCommand, onSuccess: (
         <Message v-else-if="quirks.isError.value || setQuirk.isError.value" severity="error">{{ $t("Unable to load or save quirks.") }}</Message>
         <p v-else-if="!sorted.length" class="muted">{{ $t("No quirks reported.") }}</p>
         <SettingsSection v-for="section in sections" :key="section.title" :title="section.title" class="mb-4">
-            <SettingRow v-for="quirk in section.quirks" :key="quirk.id" :name="$t(quirk.title)" :description="$t(quirk.description)">
+            <SettingRow v-for="quirk in section.quirks" :key="quirk.id" :name="$t(quirk.title)" :description="$t(quirk.description)" :stacked="quirkKind(quirk.options) === 'segmented'">
                 <ToggleSwitch v-if="quirkKind(quirk.options) === 'toggle'" :model-value="quirk.value === 'on'" :aria-label="$t(quirk.title)" :disabled="setQuirk.isPending.value" @update:model-value="value => setQuirk.mutate({id: quirk.id, value: value ? 'on' : 'off'})" />
                 <Button v-else-if="quirkKind(quirk.options) === 'action'" :label='$t("Run")' :loading="setQuirk.isPending.value && setQuirk.variables.value?.id === quirk.id" :disabled="setQuirk.isPending.value" @click="setQuirk.mutate({id: quirk.id, value: 'trigger'})" />
                 <SelectButton v-else-if="quirkKind(quirk.options) === 'segmented'" :model-value="quirk.value" :options="quirk.options.map(value => ({label: valueLabel(value), value}))" option-label="label" option-value="value" :allow-empty="false" :aria-label="$t(quirk.title)" :disabled="setQuirk.isPending.value" @update:model-value="value => setQuirk.mutate({id: quirk.id, value})" />

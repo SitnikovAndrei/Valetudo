@@ -12,12 +12,12 @@ import SettingRow from "./SettingRow.vue";
 import PresetIcon from "./PresetIcon.vue";
 import {presetLevels} from "../presetLevels";
 
-const props = defineProps<{capabilities: Capability[]; attributes: RobotAttribute[]; compact?: boolean; variant?: "segmented"}>();
+const props = defineProps<{capabilities: Capability[]; attributes: RobotAttribute[]; variant?: "segmented"}>();
 const queryClient = useQueryClient();
 const controls = computed(() => [
-    {capability: Capability.FanSpeedControl, type: "fan_speed", label: translate(props.compact ? "Power" : "Fan speed")},
-    {capability: Capability.WaterUsageControl, type: "water_grade", label: translate(props.compact ? "Water supply" : "Water usage")},
-    {capability: Capability.OperationModeControl, type: "operation_mode", label: translate(props.compact ? "Mode" : "Operation mode")}
+    {capability: Capability.FanSpeedControl, type: "fan_speed", label: translate("Fan speed")},
+    {capability: Capability.WaterUsageControl, type: "water_grade", label: translate("Water usage")},
+    {capability: Capability.OperationModeControl, type: "operation_mode", label: translate("Operation mode")}
 ] as const);
 const visible = computed(() => controls.value.filter(control => props.capabilities.includes(control.capability)));
 const options = useQuery({

@@ -20,11 +20,12 @@ const value = useQuery({queryKey: ["select", props.queryKey], queryFn: props.fet
 const options = useQuery({queryKey: ["selectOptions", props.queryKey], queryFn: props.fetchOptions});
 const mutation = useMutation({mutationFn: props.updateValue, onSuccess: () => queryClient.invalidateQueries({queryKey: ["select", props.queryKey]})});
 const choices = computed(() => (options.data.value ?? []).map(option => ({label: valueLabel(option), value: option})));
+const segmented = computed(() => choices.value.length >= 2 && choices.value.length <= 4);
 </script>
 
 <template>
-    <SettingRow :name="name" :description="description">
-        <SelectButton v-if="choices.length >= 2 && choices.length <= 4" :allow-empty="false" :model-value="value.data.value" :options="choices" option-label="label" option-value="value" :aria-label="name" :disabled="value.isPending.value || options.isPending.value || value.isError.value || options.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(String($event))" />
+    <SettingRow :name="name" :description="description" :stacked="segmented">
+        <SelectButton v-if="segmented" :allow-empty="false" :model-value="value.data.value" :options="choices" option-label="label" option-value="value" :aria-label="name" :disabled="value.isPending.value || options.isPending.value || value.isError.value || options.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(String($event))" />
         <Select v-else :model-value="value.data.value" :options="choices" option-label="label" option-value="value" :aria-label="name" :disabled="value.isPending.value || options.isPending.value || value.isError.value || options.isError.value || mutation.isPending.value" @update:model-value="mutation.mutate(String($event))" />
         <Message v-if="value.isError.value || options.isError.value || mutation.isError.value" severity="error" class="mt-2">{{ $t("Unable to load or update {name}.", {name}) }}</Message>
     </SettingRow>

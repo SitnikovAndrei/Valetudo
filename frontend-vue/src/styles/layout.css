@@ -27,33 +27,33 @@
 .app-sidebar-footer { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--app-border); color: var(--app-muted); font-size: var(--text-xs); }
 
 .app-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding: 10px 28px; border-bottom: 1px solid var(--app-border); }
+.app-topbar-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.app-mobile-back { display: none; }
+.app-breadcrumb .breadcrumb-prefix a { color: inherit; text-decoration: none; }
+.app-breadcrumb .breadcrumb-prefix a:hover { color: var(--app-accent); }
 .app-breadcrumb { min-width: 0; overflow: hidden; color: var(--app-secondary); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
 .app-breadcrumb .breadcrumb-prefix { color: var(--app-muted); font-weight: 500; }
 .app-breadcrumb span span { padding: 0 8px; }
 .app-topbar-tools { display: flex; flex: none; align-items: center; gap: 8px; }
-.preference-select { min-width: 9.5rem; }
 
 .app-content { min-width: 0; padding: 24px 28px 36px; }
-.app-back-link { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; margin: -4px 0 12px -8px; padding: 4px 8px; border-radius: var(--radius-sm); color: var(--app-accent); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
-.app-back-link:hover { background: var(--app-accent-soft); }
-.app-back-link .app-icon { width: 18px; height: 18px; }
 
 .app-mobile-nav { display: none; }
 
 @media (max-width: 1100px) {
     .app-frame { grid-template-columns: 200px minmax(0, 1fr); margin: 12px; }
     .app-content { padding: 20px; }
-    .app-breadcrumb .breadcrumb-prefix { display: none; }
 }
 
 @media (max-width: 700px) {
     body { min-width: 0; }
+    .app-mobile-back { display: grid; flex: none; width: 40px; height: 40px; place-items: center; border-radius: 9px; color: var(--app-secondary); text-decoration: none; }
+    .app-mobile-back:hover { background: var(--app-accent-soft); color: var(--app-accent); }
     .app-frame { display: block; min-height: 100dvh; margin: 0; padding-bottom: calc(60px + env(safe-area-inset-bottom)); border: 0; border-radius: 0; box-shadow: none; }
     .app-sidebar { display: none; }
     .app-topbar { min-height: 56px; padding: 8px 16px; }
     .app-breadcrumb { color: var(--app-text); font: 700 var(--text-lg) var(--font-heading); }
     .app-breadcrumb .breadcrumb-prefix { display: none; }
-    .app-topbar-tools .preference-select { display: none; }
     .app-content { padding: 14px 14px 28px; }
     .app-mobile-nav {
         position: fixed; z-index: 30; right: 0; bottom: 0; left: 0;

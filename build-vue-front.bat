@@ -1,2 +1,2 @@
-npm run build --workspace=frontend-vue -- --outDir ../frontend/build --emptyOutDir
-npm run build --workspace=backend
+call npm run build --workspace=frontend-vue -- --outDir ../frontend/build --emptyOutDir
+call npm run build --workspace=backend

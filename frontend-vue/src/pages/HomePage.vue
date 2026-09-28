@@ -18,9 +18,8 @@ import CleaningModePicker from "../components/CleaningModePicker.vue";
 import MapSelectionDetails from "../components/MapSelectionDetails.vue";
 import BasicControls from "../components/BasicControls.vue";
 import PresetSettings from "../components/PresetSettings.vue";
-import RobotStatusCard from "../components/RobotStatusCard.vue";
+import HomeDockPanel from "../components/HomeDockPanel.vue";
 import HomeCommandIcon from "../components/HomeCommandIcon.vue";
-import AppIcon from "../components/AppIcon.vue";
 
 const props = defineProps<{capabilities: Capability[]; paletteMode: "light" | "dark"}>();
 const mapPanel = ref<InstanceType<typeof MapPanel>>();
@@ -41,7 +40,7 @@ onBeforeUnmount(() => {
     document.body.classList.remove("home-fullscreen");
 });
 
-const robot = useQuery({queryKey: ["robotInformation"], queryFn: fetchRobotInformation, retry: 1});
+const robot = useQuery({queryKey: ["robotInformation"], queryFn: fetchRobotInformation});
 const {query: attributes, status, batteries} = useRobotAttributes();
 const map = useRobotMap();
 const cleaning = useMapCleaning({
@@ -94,18 +93,11 @@ const roomNames = computed(() => cleaning.segments.value.map(segment => segment.
                 <Message v-if="cleaning.zoneProperties.isError.value && mode === 'zones'" severity="error">{{ $t("Unable to load zone limits.") }}</Message>
 
                 <div v-if="hasPresets" class="home-presets">
-                    <PresetSettings :capabilities="capabilities" :attributes="attributes.data.value ?? []" compact variant="segmented" />
+                    <PresetSettings :capabilities="capabilities" :attributes="attributes.data.value ?? []" variant="segmented" />
                 </div>
             </div>
 
-            <RobotStatusCard class="home-status" :capabilities="capabilities" :status="status" :batteries="batteries" :attributes="attributes.data.value ?? []"
-                :attributes-pending="attributes.isPending.value" :attributes-error="attributes.isError.value" />
-
-            <RouterLink v-if="capabilities.includes(Capability.DoNotDisturb)" class="home-quiet-card" to="/options">
-                <AppIcon name="moon" />
-                <span><strong>{{ $t("Do not disturb") }}</strong><small>{{ $t("The behavior depends on the robot model.") }}</small></span>
-                <AppIcon name="chevron-right" />
-            </RouterLink>
+            <HomeDockPanel class="home-status" :capabilities="capabilities" :attributes="attributes.data.value ?? []" />
 
             <div class="home-mobile-command">
                 <Button v-if="mode !== 'all'" class="home-map-action" :label="cleaning.actionLabel.value" :disabled="cleaning.actionDisabled.value" :loading="cleaning.action.isPending.value" @click="cleaning.execute()">
@@ -129,15 +121,14 @@ const roomNames = computed(() => cleaning.segments.value.map(segment => segment.
 .home-dashboard {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
-    grid-template-areas: "map actions" "map status" "map quiet";
-    grid-template-rows: auto auto 1fr;
+    grid-template-areas: "map actions" "map status";
+    grid-template-rows: auto 1fr;
     gap: 16px;
     align-items: start;
 }
 .home-map { grid-area: map; position: sticky; top: 16px; }
 .home-actions { grid-area: actions; display: grid; gap: 16px; padding: 18px; }
 .home-status { grid-area: status; }
-.home-quiet-card { grid-area: quiet; }
 
 .home-action-status { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: var(--radius-sm); background: var(--app-accent-soft); color: var(--app-secondary); font-size: var(--text-xs); }
 .home-action-status strong { color: var(--app-text); }
@@ -147,25 +138,17 @@ const roomNames = computed(() => cleaning.segments.value.map(segment => segment.
 .home-commands :deep(.home-map-action) { width: 100%; min-height: 44px; justify-content: center; }
 .home-presets { padding-top: 4px; border-top: 1px solid var(--app-border); }
 
-.home-quiet-card { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 16px; border: 1px solid var(--app-border); border-radius: var(--radius-md); background: var(--app-surface-soft); color: var(--app-text); text-decoration: none; }
-.home-quiet-card:hover { border-color: var(--app-accent); }
-.home-quiet-card > :deep(.app-icon:first-child) { width: 22px; height: 22px; color: var(--app-accent); }
-.home-quiet-card > :deep(.app-icon:last-child) { width: 18px; height: 18px; margin-left: auto; color: var(--app-muted); }
-.home-quiet-card strong, .home-quiet-card small { display: block; }
-.home-quiet-card strong { font-size: var(--text-sm); }
-.home-quiet-card small { color: var(--app-muted); font-size: var(--text-xs); }
-
 .home-mobile-command { display: none; }
 
 /* Tablets: one column, controls directly under the map. */
 @media (max-width: 1100px) {
-    .home-dashboard { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "actions" "status" "quiet"; grid-template-rows: none; }
+    .home-dashboard { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "actions" "status"; grid-template-rows: none; }
     .home-map { position: static; }
 }
 
 /* Phones: the map occupies the space between the app bars. */
 @media (max-width: 700px) {
-    .home-header, .home-actions, .home-status, .home-quiet-card, .home-mobile-command { display: none; }
+    .home-header, .home-actions, .home-status, .home-mobile-command { display: none; }
     .home-page { position: fixed; inset: 56px 0 calc(60px + env(safe-area-inset-bottom)); overflow: hidden; }
     .home-dashboard { display: block; height: 100%; }
     .home-map { position: absolute; inset: 0; height: 100%; margin: 0; border: 0; border-radius: 0; }

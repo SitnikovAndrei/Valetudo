@@ -105,8 +105,8 @@ export function useMapCleaning(options: {
 
     const actionLabel = computed(() => {
         if (mode.value === "goto") return translate("Go to point");
-        if (mode.value === "segments") return selectedSegmentIds.value.length ? translate("Clean {count} rooms", {count: selectedSegmentIds.value.length}) : translate("Select rooms");
-        return zones.value.length ? translate("Clean {count} zones", {count: zones.value.length}) : translate("Select a zone");
+        if (mode.value === "segments") return selectedSegmentIds.value.length ? translate("Clean {count} rooms", {count: selectedSegmentIds.value.length}) : translate("Clean rooms");
+        return zones.value.length ? translate("Clean {count} zones", {count: zones.value.length}) : translate("Clean zones");
     });
     const actionDisabled = computed(() => !pending.value || !canAct.value || action.isPending.value || !propertiesReady.value);
 

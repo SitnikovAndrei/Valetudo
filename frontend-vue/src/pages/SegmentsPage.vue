@@ -23,7 +23,7 @@ const {query: attributes, status} = useRobotAttributes();
 const queryClient = useQueryClient();
 const selected = ref<string[]>([]);
 const line = ref<Shape>();
-const mode = ref<"pan" | "segments" | "line">("segments");
+const mode = ref<"segments" | "line">("segments");
 const renameOpen = ref(false);
 const materialOpen = ref(false);
 const name = ref("");
@@ -42,7 +42,17 @@ const mutation = useMutation({mutationFn: async (action: "join" | "split" | "ren
     if (action === "material" && selected.value.length === 1 && material.value) return sendSetSegmentMaterialCommand({segment_id: selected.value[0], material: material.value});
     throw new Error(translate("Invalid segment action"));
 }, onSuccess: async () => {selected.value = []; line.value = undefined; mode.value = "segments"; renameOpen.value = false; materialOpen.value = false; await queryClient.invalidateQueries({queryKey: ["robotMap"]});}});
-function toggle(id: string) {selected.value = selected.value.includes(id) ? selected.value.filter(value => value !== id) : [...selected.value.slice(-1), id];}
+const hint = computed(() => {
+    if (mode.value === "line") return translate("Draw a line across the selected room.");
+    if (line.value) return translate("The line is only a draft: press Split to apply it or the cross next to it to remove it. A split can be undone by joining the two new rooms.");
+    return translate("Tap rooms to select them: one to rename or split, two to join. Drag to move the map.");
+});
+/** A splitting line belongs to the selected room, so any selection change discards it. */
+function toggle(id: string) {
+    selected.value = selected.value.includes(id) ? selected.value.filter(value => value !== id) : [...selected.value.slice(-1), id];
+    line.value = undefined;
+    if (mode.value === "line") mode.value = "segments";
+}
 function openRename() {name.value = layers.value.find(layer => layer.metaData.segmentId === selected.value[0])?.metaData.name ?? ""; renameOpen.value = true;}
 function openMaterial() {material.value = layers.value.find(layer => layer.metaData.segmentId === selected.value[0])?.metaData.material as MapSegmentMaterial | undefined; materialOpen.value = true;}
 </script>
@@ -57,8 +67,9 @@ function openMaterial() {material.value = layers.value.find(layer => layer.metaD
             <template v-else-if="map.data.value">
                 <Message v-if="attributes.isError.value" severity="error" class="mb-3">{{ $t("Unable to load robot status.") }} <Button :label='$t("Retry")' text @click="attributes.refetch()" /></Message>
                 <Message v-else-if="!canEdit" severity="info" class="mb-3">{{ $t("Dock the robot to edit segments.") }}</Message>
-                <div class="mb-3 flex flex-wrap gap-2"><Button :label='$t("Select segments")' :outlined="mode !== 'segments'" @click="mode = 'segments'" /><Button :label='$t("Pan")' :outlined="mode !== 'pan'" @click="mode = 'pan'" /><Button v-if="capabilities.includes(Capability.MapSegmentEdit)" :label='$t("Draw splitting line")' :disabled="!canEdit || selected.length !== 1" :outlined="mode !== 'line'" @click="mode = 'line'" /></div>
-                <div class="h-[min(60vh,600px)] overflow-hidden rounded-xl" style="background: var(--app-bg)"><MapCanvas :map="map.data.value" :palette-mode="paletteMode" :mode="mode" :selected-segment-ids="selected" :zones="[]" :edit-line="line" @segment-click="toggle" @shape-created="shape => {line = shape; mode = 'segments';}" /></div>
+                <div class="mb-3 flex flex-wrap gap-2"><Button :label='$t("Select segments")' :outlined="mode !== 'segments'" @click="mode = 'segments'" /><Button v-if="capabilities.includes(Capability.MapSegmentEdit)" :label='$t("Draw splitting line")' :disabled="!canEdit || selected.length !== 1" :outlined="mode !== 'line'" @click="mode = 'line'" /></div>
+                <p class="muted mb-2 text-sm">{{ hint }}</p>
+                <div class="h-[min(60vh,600px)] overflow-hidden rounded-xl" style="background: var(--app-bg)"><MapCanvas :map="map.data.value" :palette-mode="paletteMode" :mode="mode" :selected-segment-ids="selected" :zones="[]" :edit-line="line" @segment-click="toggle" @shape-created="shape => {line = shape; mode = 'segments';}" @line-remove="line = undefined" /></div>
                 <div class="mt-4 flex flex-wrap gap-2" role="group" :aria-label='$t("Select segments")'><Button v-for="layer in layers" :key="layer.metaData.segmentId" :label="layer.metaData.name || layer.metaData.segmentId" size="small" :outlined="!selected.includes(layer.metaData.segmentId!)" @click="toggle(layer.metaData.segmentId!)" /></div>
                 <div class="mt-4 flex flex-wrap gap-2"><Button v-if="capabilities.includes(Capability.MapSegmentRename)" :label='$t("Rename")' :disabled="!canEdit || selected.length !== 1 || mutation.isPending.value" @click="openRename" /><Button v-if="capabilities.includes(Capability.MapSegmentMaterialControl)" :label='$t("Set material")' :disabled="!canEdit || selected.length !== 1 || mutation.isPending.value" outlined @click="openMaterial" /><Button v-if="capabilities.includes(Capability.MapSegmentEdit)" :label='$t("Join")' :disabled="!canEdit || selected.length !== 2 || mutation.isPending.value" outlined @click="mutation.mutate('join')" /><Button v-if="capabilities.includes(Capability.MapSegmentEdit)" :label='$t("Split")' :disabled="!canEdit || selected.length !== 1 || !line || mutation.isPending.value" outlined @click="mutation.mutate('split')" /></div>
                 <Message v-if="mutation.isError.value" severity="error" class="mt-4">{{ $t("Segment action failed.") }}</Message>

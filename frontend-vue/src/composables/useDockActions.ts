@@ -15,6 +15,20 @@ export function useDockActions(options: {capabilities: () => Capability[]; attri
     const canEmpty = computed(() => dockStateKnown.value && robotState.value === "docked" && ["idle", "pause"].includes(dockState.value));
     const canClean = computed(() => dockStateKnown.value && robotState.value === "docked" && mopAttached.value && ["idle", "cleaning", "pause"].includes(dockState.value));
     const canDry = computed(() => dockStateKnown.value && robotState.value === "docked" && mopAttached.value && ["idle", "drying", "pause"].includes(dockState.value));
+    const hasDockStatus = computed(() => options.attributes().some(attribute => attribute.__class === RobotAttributeClass.DockStatusState));
+    /** English source text of what the dock is doing, or undefined when the robot does not report it. */
+    const dockStatusLabel = computed(() => hasDockStatus.value ? ({
+        idle: "Ready", pause: "Paused", emptying: "Emptying the dustbin", cleaning: "Washing the mop", drying: "Drying the mop", error: "Dock error"
+    } as Record<string, string>)[dockState.value] : undefined);
+    const hasMopActions = computed(() => options.capabilities().some(capability => [Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability)));
+    /** English source text explaining why dock actions are unavailable; undefined while they are usable or busy with a task shown by the status. */
+    const unavailableReason = computed(() => {
+        if (!dockStateKnown.value) return undefined;
+        if (robotState.value !== "docked") return "Available when the robot is docked.";
+        if (dockState.value === "error") return "The dock reports an error. Check the robot app or the dock.";
+        if (hasMopActions.value && !mopAttached.value) return "Attach the mop to wash or dry it.";
+        return undefined;
+    });
     const hasDockActions = computed(() => options.capabilities().some(capability => [Capability.AutoEmptyDockManualTrigger, Capability.MopDockCleanManualTrigger, Capability.MopDockDryManualTrigger].includes(capability)));
     const queryClient = useQueryClient();
     const dockMutation = useMutation({onSuccess: () => queryClient.invalidateQueries({queryKey: ["robotAttributes"]}), mutationFn: async (action: DockAction) => {
@@ -27,5 +41,5 @@ export function useDockActions(options: {capabilities: () => Capability[]; attri
         {capability: Capability.MopDockCleanManualTrigger, id: dockState.value === "cleaning" ? "stop_clean" : "clean", label: dockState.value === "cleaning" ? "Stop mop cleaning" : "Clean mop", enabled: canClean.value},
         {capability: Capability.MopDockDryManualTrigger, id: dockState.value === "drying" ? "stop_dry" : "dry", label: dockState.value === "drying" ? "Stop mop drying" : "Dry mop", enabled: canDry.value}
     ] satisfies DockActionOption[]).filter(action => options.capabilities().includes(action.capability)));
-    return {actions, hasDockActions, dockState, canEmpty, canClean, canDry, dockMutation};
+    return {actions, hasDockActions, dockState, dockStatusLabel, unavailableReason, canEmpty, canClean, canDry, dockMutation};
 }

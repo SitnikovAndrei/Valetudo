@@ -22,8 +22,6 @@ declare module "vue-router" {
 }
 
 const settings = (section: SettingsSection) => ({to: {path: "/options", query: {section}}, label: "Settings"});
-const mapOptions = {to: "/options/map_management", label: "Map options"};
-const connectivity = {to: "/options/connectivity", label: "Connectivity"};
 
 export const routes: RouteRecordRaw[] = [
     {path: "/", component: HomePage, meta: {title: "Map and controls"}},
@@ -35,18 +33,18 @@ export const routes: RouteRecordRaw[] = [
     {path: "/robot/consumables", component: () => import("./pages/ConsumablesPage.vue"), meta: {title: "Consumables", requires: [Capability.ConsumableMonitoring]}},
 
     {path: "/options/map_management", component: () => import("./pages/MapManagementPage.vue"), meta: {title: "Map options", parent: settings("map")}},
-    {path: "/options/map_management/segments", component: () => import("./pages/SegmentsPage.vue"), meta: {title: "Segment management", parent: mapOptions, requires: [Capability.MapSegmentEdit, Capability.MapSegmentRename, Capability.MapSegmentMaterialControl]}},
-    {path: "/options/map_management/virtual_restrictions", component: () => import("./pages/VirtualRestrictionsPage.vue"), meta: {title: "Virtual restrictions", parent: mapOptions, requires: [Capability.CombinedVirtualRestrictions]}},
-    {path: "/options/map_management/annotations", component: () => import("./pages/MapAnnotationsPage.vue"), meta: {title: "Map annotations", parent: mapOptions, requires: [Capability.MapAnnotations]}},
-    {path: "/options/map_management/spectator", component: () => import("./pages/SpectatorPage.vue"), meta: {title: "Spectator map", parent: mapOptions, requiresCamera: true}},
-    {path: "/options/map_management/robot_coverage", component: () => import("./pages/RobotCoveragePage.vue"), meta: {title: "Robot coverage map", parent: mapOptions}},
+    {path: "/options/map_management/segments", component: () => import("./pages/SegmentsPage.vue"), meta: {title: "Segment management", parent: settings("map"), requires: [Capability.MapSegmentEdit, Capability.MapSegmentRename, Capability.MapSegmentMaterialControl]}},
+    {path: "/options/map_management/virtual_restrictions", component: () => import("./pages/VirtualRestrictionsPage.vue"), meta: {title: "Virtual restrictions", parent: settings("map"), requires: [Capability.CombinedVirtualRestrictions]}},
+    {path: "/options/map_management/annotations", component: () => import("./pages/MapAnnotationsPage.vue"), meta: {title: "Map annotations", parent: settings("map"), requires: [Capability.MapAnnotations]}},
+    {path: "/options/map_management/spectator", component: () => import("./pages/SpectatorPage.vue"), meta: {title: "Spectator map", parent: settings("map"), requiresCamera: true}},
+    {path: "/options/map_management/robot_coverage", component: () => import("./pages/RobotCoveragePage.vue"), meta: {title: "Robot coverage map", parent: settings("map")}},
 
-    {path: "/options/connectivity", component: () => import("./pages/ConnectivityPage.vue"), meta: {title: "Connectivity", parent: settings("connectivity")}},
-    {path: "/options/connectivity/auth", component: () => import("./pages/AuthSettingsPage.vue"), meta: {title: "HTTP Basic Auth", parent: connectivity}},
-    {path: "/options/connectivity/mqtt", component: () => import("./pages/MQTTPage.vue"), meta: {title: "MQTT connectivity", parent: connectivity}},
-    {path: "/options/connectivity/networkadvertisement", component: () => import("./pages/NetworkAdvertisementPage.vue"), meta: {title: "Network advertisement", parent: connectivity}},
-    {path: "/options/connectivity/ntp", component: () => import("./pages/NTPPage.vue"), meta: {title: "NTP", parent: connectivity}},
-    {path: "/options/connectivity/wifi", component: () => import("./pages/WifiConnectivityPage.vue"), meta: {title: "Wi-Fi connectivity", parent: connectivity, requires: [Capability.WifiConfiguration]}},
+    {path: "/options/connectivity", redirect: {path: "/options", query: {section: "connectivity"}}},
+    {path: "/options/connectivity/auth", component: () => import("./pages/AuthSettingsPage.vue"), meta: {title: "HTTP Basic Auth", parent: settings("connectivity")}},
+    {path: "/options/connectivity/mqtt", component: () => import("./pages/MQTTPage.vue"), meta: {title: "MQTT connectivity", parent: settings("connectivity")}},
+    {path: "/options/connectivity/networkadvertisement", component: () => import("./pages/NetworkAdvertisementPage.vue"), meta: {title: "Network advertisement", parent: settings("connectivity")}},
+    {path: "/options/connectivity/ntp", component: () => import("./pages/NTPPage.vue"), meta: {title: "NTP", parent: settings("connectivity")}},
+    {path: "/options/connectivity/wifi", component: () => import("./pages/WifiConnectivityPage.vue"), meta: {title: "Wi-Fi connectivity", parent: settings("connectivity"), requires: [Capability.WifiConfiguration]}},
 
     {path: "/options/robot", component: () => import("./pages/RobotOptionsPage.vue"), meta: {title: "Robot options", parent: settings("robot")}},
     {path: "/options/robot/system", component: () => import("./pages/SystemRobotOptionsPage.vue"), meta: {title: "Robot system options", parent: settings("robot")}},

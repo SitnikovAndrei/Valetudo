@@ -9,7 +9,6 @@ import {Capability} from "./api/types";
 import {capabilitiesQuery, valetudoInformationQuery, wifiStatusQuery} from "./api/queries";
 import AppNavigation from "./components/AppNavigation.vue";
 import EventsPanel from "./components/EventsPanel.vue";
-import PreferenceSelects from "./components/PreferenceSelects.vue";
 import WelcomeDialog from "./components/WelcomeDialog.vue";
 import AppIcon from "./components/AppIcon.vue";
 import {locale, setLanguage, translate} from "./i18n";
@@ -63,17 +62,12 @@ function retry() {
         <AppNavigation v-if="showChrome" variant="desktop" :capabilities="capabilities.data.value ?? []" />
         <div class="app-main">
             <header class="app-topbar">
-                <div class="app-breadcrumb"><span class="breadcrumb-prefix">Valetudo <span>/</span></span><template v-if="parentPage"><span class="breadcrumb-prefix">{{ parentPage.label }} <span>/</span></span></template>{{ pageTitle }}</div>
+                <div class="app-topbar-heading"><RouterLink v-if="parentPage && ready" class="app-mobile-back" :to="parentPage.to" :aria-label='$t("Back to {section}", {section: parentPage.label})'><AppIcon name="chevron-left" /></RouterLink><div class="app-breadcrumb"><span class="breadcrumb-prefix"><RouterLink to="/">Valetudo</RouterLink><span>/</span></span><span v-if="parentPage" class="breadcrumb-prefix"><RouterLink :to="parentPage.to">{{ parentPage.label }}</RouterLink><span>/</span></span>{{ pageTitle }}</div></div>
                 <div class="app-topbar-tools">
                     <EventsPanel v-if="ready" />
-                    <PreferenceSelects layout="toolbar" />
                 </div>
             </header>
             <main class="app-content">
-                <RouterLink v-if="parentPage && ready" class="app-back-link" :to="parentPage.to">
-                    <AppIcon name="chevron-left" />
-                    <span>{{ $t("Back to {section}", {section: parentPage.label}) }}</span>
-                </RouterLink>
                 <div v-if="loading" class="panel" role="status">{{ $t("Loading robot capabilities and Valetudo information…") }}</div>
                 <div v-else-if="failed" class="panel flex flex-col items-start gap-4">
                     <Message severity="error">{{ $t("Unable to connect to Valetudo.") }}</Message>

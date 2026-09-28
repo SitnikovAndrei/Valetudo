@@ -41,8 +41,8 @@ function apply() {
             <SettingRow :name='$t("Enabled")'><Checkbox v-model="draft.enabled" binary :aria-label='$t("Do not disturb")' /></SettingRow>
             <SettingRow :name='$t("Quiet hours")'>
                 <div class="flex flex-wrap gap-3">
-                    <label class="flex flex-col gap-1 text-xs muted">{{ $t("Start") }}<TimeInput v-model="start" :disabled="!draft.enabled" :label='$t("Start")' /></label>
-                    <label class="flex flex-col gap-1 text-xs muted">{{ $t("End") }}<TimeInput v-model="end" :disabled="!draft.enabled" :label='$t("End")' /></label>
+                    <label class="flex flex-col gap-1 text-xs muted">{{ $t("Start time") }}<TimeInput v-model="start" :disabled="!draft.enabled" :label='$t("Start time")' /></label>
+                    <label class="flex flex-col gap-1 text-xs muted">{{ $t("End time") }}<TimeInput v-model="end" :disabled="!draft.enabled" :label='$t("End time")' /></label>
                 </div>
             </SettingRow>
             <div class="mt-4 flex justify-end"><Button :label='$t("Apply")' :loading="save.isPending.value" @click="apply" /></div>

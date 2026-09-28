@@ -67,7 +67,7 @@ if (rich) {
     responses.set("/api/v2/timers/properties", {supportedActions: ["full_cleanup", "segment_cleanup"], supportedPreActions: []});
     responses.set("/api/v2/timers", timers);
     for (const [capability, field, initial, supportedField, supported] of [
-        ["CarpetSensorModeControlCapability", "mode", "avoid", "supportedModes", ["off", "avoid", "lift"]],
+        ["CarpetSensorModeControlCapability", "mode", "avoid", "supportedModes", ["avoid", "off", "lift", "detach"]],
         ["CleanRouteControlCapability", "route", "normal", "supportedRoutes", ["quick", "normal", "intensive"]],
         ["AutoEmptyDockAutoEmptyIntervalControlCapability", "interval", "normal", "supportedIntervals", ["off", "normal", "frequent"]],
         ["AutoEmptyDockAutoEmptyDurationControlCapability", "duration", "auto", "supportedDurations", ["auto", "short", "long"]],
@@ -81,6 +81,17 @@ if (rich) {
     responses.set("/api/v2/robot/capabilities/CombinedVirtualRestrictionsCapability/properties", {supportedRestrictedZoneTypes: ["regular", "mop"]});
     responses.set("/api/v2/robot/capabilities/MapAnnotationsCapability/properties", {supportedAnnotationTypes: ["threshold", "curtain", "ramp"]});
     responses.set("/api/v2/robot/capabilities/MapSegmentMaterialControlCapability/properties", {supportedMaterials: ["generic", "tile", "wood_vertical", "carpet"]});
+    responses.get("/api/v2/robot/capabilities").push("QuirksCapability");
+    responses.set("/api/v2/robot/capabilities/QuirksCapability", [
+        {id: "fixture-edge-frequency", title: "Edge Extension: Frequency", description: "Select when/how often mop and side brush (each when enabled) should be extended to increase coverage in corners and close to walls.", options: ["automatic", "each_cleanup", "every_7_days"], value: "every_7_days"},
+        {id: "fixture-detergent", title: "Detergent", description: "Detergent", options: ["on", "off"], value: "on"}
+    ]);
+    responses.set("/api/v2/events", [
+        {__class: "ErrorStateValetudoEvent", id: "fixture-error", timestamp: "2026-01-03T09:15:00Z", processed: false, message: "Wheel stuck"},
+        {__class: "PendingMapChangeValetudoEvent", id: "fixture-map-change", timestamp: "2026-01-02T18:40:00Z", processed: false},
+        {__class: "ConsumableDepletedValetudoEvent", id: "fixture-consumable", timestamp: "2026-01-02T08:00:00Z", processed: false, type: "brush", subType: "main"},
+        {__class: "DustBinFullValetudoEvent", id: "fixture-dustbin", timestamp: "2026-01-01T12:00:00Z", processed: true}
+    ]);
 }
 
 http.createServer((request, response) => {
@@ -133,6 +144,16 @@ http.createServer((request, response) => {
             response.writeHead(200);
             response.end();
         });
+        return;
+    }
+
+    const eventInteraction = rich && request.method === "PUT" ? /^\/api\/v2\/events\/([^/]+)\/interact$/.exec(request.url ?? "") : null;
+    if (eventInteraction) {
+        const event = responses.get("/api/v2/events").find(value => value.id === eventInteraction[1]);
+        if (event) event.processed = true;
+        actions.push({path: request.url, method: "PUT"});
+        response.writeHead(event ? 200 : 404);
+        response.end();
         return;
     }
 

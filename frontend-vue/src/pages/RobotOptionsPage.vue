@@ -3,19 +3,19 @@ import {computed, ref} from "vue";
 import {useMutation} from "@tanstack/vue-query";
 import Button from "primevue/button";
 import Message from "primevue/message";
-import {Capability, type AutoEmptyDockAutoEmptyDuration, type AutoEmptyDockAutoEmptyInterval, type CarpetSensorMode, type CleanRoute, type CleanRouteControlProperties, type MopDockMopDryingDuration, type MopDockMopDryingTimeControlProperties, type MopDockMopWashTemperature} from "../api/types";
+import {Capability, type AutoEmptyDockAutoEmptyDuration, type AutoEmptyDockAutoEmptyInterval, type CarpetSensorMode, type MopDockMopDryingDuration, type MopDockMopDryingTimeControlProperties, type MopDockMopWashTemperature} from "../api/types";
 import {
     fetchAutoEmptyDockAutoEmptyDuration, fetchAutoEmptyDockAutoEmptyDurationControlProperties,
     fetchAutoEmptyDockAutoEmptyInterval, fetchAutoEmptyDockAutoEmptyIntervalProperties,
     fetchCameraLightControlState, fetchCarpetModeState, fetchCollisionAvoidantNavigationControlState,
-    fetchCarpetSensorMode, fetchCarpetSensorModeProperties, fetchCleanRoute, fetchCleanRouteControlProperties,
+    fetchCarpetSensorMode, fetchCarpetSensorModeProperties,
     fetchFloorMaterialDirectionAwareNavigationControlState, fetchKeyLockState, fetchMopDockMopAutoDryingControlState,
     fetchMopDockMopDryingTime, fetchMopDockMopDryingTimeControlProperties,
     fetchMopDockMopWashTemperature, fetchMopDockMopWashTemperatureProperties,
     fetchMopExtensionControlState, fetchMopExtensionFurnitureLegHandlingControlState, fetchMopTwistControlState,
     fetchObstacleAvoidanceControlState, fetchObstacleImagesState, fetchPetObstacleAvoidanceControlState,
     sendAutoEmptyDockAutoEmptyDuration, sendAutoEmptyDockAutoEmptyInterval,
-    sendCameraLightControlState, sendCarpetModeEnable, sendCarpetSensorMode, sendCleanRoute, sendCollisionAvoidantNavigationControlState,
+    sendCameraLightControlState, sendCarpetModeEnable, sendCarpetSensorMode, sendCollisionAvoidantNavigationControlState,
     sendFloorMaterialDirectionAwareNavigationControlState, sendKeyLockEnable, sendLocateCommand,
     sendMopDockMopAutoDryingControlState, sendMopDockMopDryingTime, sendMopDockMopWashTemperature, sendMopExtensionControlState,
     sendMopExtensionFurnitureLegHandlingControlState, sendMopTwistControlState,
@@ -24,25 +24,19 @@ import {
 import ToggleSetting from "../components/ToggleSetting.vue";
 import SelectSetting from "../components/SelectSetting.vue";
 import {translate} from "../i18n";
-import {valueLabel} from "../i18n/labels";
 import PageHeader from "../components/PageHeader.vue";
 import SettingsSection from "../components/SettingsSection.vue";
 import SettingRow from "../components/SettingRow.vue";
 import AppIcon from "../components/AppIcon.vue";
 
 const props = defineProps<{capabilities: Capability[]}>();
-const cleanRouteProperties = ref<CleanRouteControlProperties>();
+/** Robots report carpet modes in arbitrary order; show them from "do nothing" to "most effort". */
+const carpetModeOrder: CarpetSensorMode[] = ["off", "avoid", "lift", "detach"];
+function sortByOrder<T extends string>(values: T[], order: T[]): T[] {
+    const rank = (value: T) => order.includes(value) ? order.indexOf(value) : order.length;
+    return [...values].sort((a, b) => rank(a) - rank(b));
+}
 const mopDryingProperties = ref<MopDockMopDryingTimeControlProperties>();
-const cleanRouteDescription = computed(() => {
-    const details = [translate("Trade speed for thoroughness and vice-versa.")];
-    if (cleanRouteProperties.value?.mopOnly.length) {
-        details.push(translate("Mop-only routes: {routes}.", {routes: cleanRouteProperties.value.mopOnly.map(valueLabel).join(", ")}));
-    }
-    if (cleanRouteProperties.value?.oneTime.length) {
-        details.push(translate("One-time routes: {routes}.", {routes: cleanRouteProperties.value.oneTime.map(valueLabel).join(", ")}));
-    }
-    return details.join(" ");
-});
 const mopDryingDescription = computed(() => [
     translate("Select how long the mop should be dried with hot air after a cleanup."),
     ...(mopDryingProperties.value?.supportedDurations.includes("cold") ? [translate('"Cold" disables the heater and compensates with far longer runtimes.')] : [])
@@ -62,8 +56,7 @@ const settings = computed(() => [
     {group: "Dock", capability: Capability.MopDockMopAutoDryingControl, name: translate("Automatic mop drying"), description: translate("Automatically dry the mop pads after a cleanup."), fetchState: fetchMopDockMopAutoDryingControlState, updateState: sendMopDockMopAutoDryingControlState}
 ]);
 const selections = computed(() => [
-    {group: "Cleaning", capability: Capability.CarpetSensorModeControl, name: translate("Carpet sensor"), description: translate("Select what action the robot should take if it detects carpet while mopping."), fetchValue: fetchCarpetSensorMode, fetchOptions: async () => (await fetchCarpetSensorModeProperties()).supportedModes, updateValue: (value: string) => sendCarpetSensorMode({mode: value as CarpetSensorMode})},
-    {group: "Cleaning", capability: Capability.CleanRouteControl, name: translate("Clean route"), description: cleanRouteDescription.value, fetchValue: fetchCleanRoute, fetchOptions: async () => {const properties = await fetchCleanRouteControlProperties(); cleanRouteProperties.value = properties; return properties.supportedRoutes;}, updateValue: (value: string) => sendCleanRoute({route: value as CleanRoute})},
+    {group: "Cleaning", capability: Capability.CarpetSensorModeControl, name: translate("Carpet sensor"), description: translate("Select what action the robot should take if it detects carpet while mopping."), fetchValue: fetchCarpetSensorMode, fetchOptions: async () => sortByOrder((await fetchCarpetSensorModeProperties()).supportedModes, carpetModeOrder), updateValue: (value: string) => sendCarpetSensorMode({mode: value as CarpetSensorMode})},
     {group: "Dock", capability: Capability.AutoEmptyDockAutoEmptyIntervalControl, name: translate("Dock auto-empty"), description: translate("Select if and/or how often the dock should auto-empty the robot."), fetchValue: fetchAutoEmptyDockAutoEmptyInterval, fetchOptions: async () => (await fetchAutoEmptyDockAutoEmptyIntervalProperties()).supportedIntervals, updateValue: (value: string) => sendAutoEmptyDockAutoEmptyInterval({interval: value as AutoEmptyDockAutoEmptyInterval})},
     {group: "Dock", capability: Capability.AutoEmptyDockAutoEmptyDurationControl, name: translate("Auto-empty duration"), description: translate("Configure the duration of the auto-empty cycle."), fetchValue: fetchAutoEmptyDockAutoEmptyDuration, fetchOptions: async () => (await fetchAutoEmptyDockAutoEmptyDurationControlProperties()).supportedDurations, updateValue: (value: string) => sendAutoEmptyDockAutoEmptyDuration({duration: value as AutoEmptyDockAutoEmptyDuration})},
     {group: "Dock", capability: Capability.MopDockMopWashTemperatureControl, name: translate("Mop wash temperature"), description: translate("Select if and/or how much the dock should heat the water used to rinse the mop pads."), fetchValue: fetchMopDockMopWashTemperature, fetchOptions: async () => (await fetchMopDockMopWashTemperatureProperties()).supportedTemperatures, updateValue: (value: string) => sendMopDockMopWashTemperature({temperature: value as MopDockMopWashTemperature})},

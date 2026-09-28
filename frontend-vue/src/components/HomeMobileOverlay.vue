@@ -56,7 +56,7 @@ function executePrimary() {
     else control.send(primary.value);
 }
 
-const {actions, hasDockActions, dockMutation} = useDockActions({capabilities: () => props.capabilities, attributes: () => props.attributes});
+const {actions, hasDockActions, dockStatusLabel, unavailableReason, dockMutation} = useDockActions({capabilities: () => props.capabilities, attributes: () => props.attributes});
 const quirks = useQuery({queryKey: ["quirks"], queryFn: fetchQuirks, enabled: computed(() => props.capabilities.includes(Capability.Quirks))});
 const actionQuirks = computed(() => props.capabilities.includes(Capability.Quirks) ? (quirks.data.value ?? []).filter(quirk => quirkKind(quirk.options) === "action") : []);
 const queryClient = useQueryClient();
@@ -95,10 +95,11 @@ const setQuirk = useMutation({mutationFn: sendSetQuirkValueCommand, onSuccess: (
         </div>
     </div>
     <Drawer v-model:visible="settingsOpen" position="bottom" :header='$t("Cleaning settings")' class="home-mobile-sheet">
-        <PresetSettings :capabilities="capabilities" :attributes="attributes" compact variant="segmented" />
+        <PresetSettings :capabilities="capabilities" :attributes="attributes" variant="segmented" />
     </Drawer>
     <Drawer v-model:visible="dockOpen" position="bottom" :header='$t("Dock station")' class="home-mobile-sheet">
         <div class="mobile-dock-actions">
+            <p v-if="dockStatusLabel || unavailableReason" class="mobile-dock-state" role="status"><strong v-if="dockStatusLabel">{{ $t(dockStatusLabel) }}</strong><span v-if="unavailableReason">{{ $t(unavailableReason) }}</span></p>
             <Button v-for="action in actions" :key="action.id" :label="$t(action.label)" outlined :disabled="attributesError || !action.enabled || dockMutation.isPending.value" :loading="dockMutation.isPending.value && dockMutation.variables.value === action.id" @click="dockMutation.mutate(action.id)" />
             <Button v-for="quirk in actionQuirks" :key="quirk.id" :label="$t(quirk.title)" outlined :disabled="setQuirk.isPending.value" :loading="setQuirk.isPending.value && setQuirk.variables.value?.id === quirk.id" @click="setQuirk.mutate({id: quirk.id, value: 'trigger'})" />
             <Message v-if="dockMutation.isError.value || setQuirk.isError.value" severity="error">{{ $t("A robot control request failed.") }}</Message>
@@ -118,9 +119,9 @@ const setQuirk = useMutation({mutationFn: sendSetQuirkValueCommand, onSuccess: (
 .mobile-tools button:disabled { opacity: .5; cursor: default; }
 .mobile-bottom { position: absolute; bottom: 0; left: 0; right: 0; display: grid; gap: 6px; padding: 12px 14px 10px; }
 .mobile-bottom :deep(.mode-picker) { grid-template-columns: repeat(var(--mode-count), minmax(0, 1fr)); gap: 2px; padding: 3px; border: 1px solid var(--app-border); border-radius: 28px; background: var(--app-surface); }
-.mobile-bottom :deep(.mode-picker button) { display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; min-width: 0; height: 32px; min-height: 32px; gap: 0; padding: 0 4px; border: 0; border-radius: 24px; font-size: var(--text-xs); }
+.mobile-bottom :deep(.mode-picker button) { display: flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; min-width: 0; height: 40px; min-height: 40px; gap: 0; padding: 0 4px; border: 0; border-radius: 24px; font-size: var(--text-xs); }
 .mobile-bottom :deep(.mode-picker button[aria-pressed="true"]) { background: var(--app-accent-soft); color: var(--app-accent); }
-.mobile-selection { justify-self: center; max-width: 100%; margin: 0; padding: 2px 8px; text-align: center; font-size: 11px; line-height: 1.3; color: var(--app-muted); border-radius: var(--radius-sm); background: var(--app-surface); }
+.mobile-selection { justify-self: center; max-width: 100%; margin: 0; padding: 2px 8px; text-align: center; font-size: var(--text-xs); line-height: 1.3; color: var(--app-muted); border-radius: var(--radius-sm); background: var(--app-surface); }
 .mobile-command-row { display: flex; justify-content: center; align-items: flex-start; gap: 28px; pointer-events: none; }
 .mobile-command { width: 48px; height: 48px; margin-top: 10px; background: var(--app-surface); color: var(--app-text); border-color: var(--app-border); pointer-events: auto; }
 .mobile-primary { display: grid; justify-items: center; gap: 4px; max-width: 160px; }
@@ -128,6 +129,8 @@ const setQuirk = useMutation({mutationFn: sendSetQuirkValueCommand, onSuccess: (
 .mobile-command-primary { width: 68px; height: 68px; margin: 0; background: var(--app-accent); border-color: var(--app-accent); color: var(--app-on-accent); }
 .mobile-command :deep(svg) { width: 24px; height: 24px; }
 .mobile-dock-actions { display: grid; gap: 12px; }
+.mobile-dock-state { display: grid; gap: 2px; margin: 0; font-size: var(--text-sm); }
+.mobile-dock-state span { color: var(--app-muted); font-size: var(--text-xs); }
 .mobile-dock-actions :deep(.p-button) { width: 100%; min-height: 44px; justify-content: flex-start; }
 .mobile-dock-actions :deep(.p-button-label) { white-space: normal; text-align: left; }
 @media (min-width: 701px) {

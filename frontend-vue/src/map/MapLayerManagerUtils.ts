@@ -288,9 +288,12 @@ export function PROCESS_LAYERS(layers: Array<RawMapLayer>, pixelSize: number, pa
             case "segment": {
                 const colorId = colorFinder.getColor((layer.metaData.segmentId ?? ""));
 
-                if (hasSelectedSegments || selectedSegmentIds.includes(layer.metaData.segmentId ?? "")) {
+                if (hasSelectedSegments) {
                     color = colors.segments[colorId];
                     accentColor = accentColors.segments[colorId];
+                } else if (selectedSegmentIds.includes(layer.metaData.segmentId ?? "")) {
+                    color = paletteMode === "dark" ? DARK_SELECTED_SEGMENT_COLOR : SELECTED_SEGMENT_COLOR;
+                    accentColor = paletteMode === "dark" ? DARK_SELECTED_SEGMENT_ACCENT_COLOR : SELECTED_SEGMENT_ACCENT_COLOR;
                 } else {
                     color = backgroundColors.segments[colorId];
                     accentColor = backgroundAccentColors.segments[colorId];
@@ -401,11 +404,31 @@ export const ACCENT_COLORS: LayerColors = {
     segments: COLORS.segments.map(c => adjustRGBColorBrightness(c, -7.5))
 };
 
+/** Linear blend of two colors; `amount` 0 keeps `color`, 1 gives `target`. */
+export function mixRGBColors(color: RGBColor, target: RGBColor, amount: number): RGBColor {
+    return {
+        r: Math.round(color.r + (target.r - color.r) * amount),
+        g: Math.round(color.g + (target.g - color.g) * amount),
+        b: Math.round(color.b + (target.b - color.b) * amount)
+    };
+}
+
+// While rooms are selected, everything else fades towards the map background so the selection stands out.
+const lightFade = hexToRgb("#f4f6f3");
+const darkFade = hexToRgb("#101c19");
+const BACKGROUND_FADE = 0.55;
+
 export const BACKGROUND_COLORS: LayerColors = {
-    floor: adjustRGBColorBrightness(COLORS.floor, 5),
-    wall: adjustRGBColorBrightness(COLORS.wall, 18),
-    segments: COLORS.segments.map(c => adjustRGBColorBrightness(c, 5))
+    floor: mixRGBColors(COLORS.floor, lightFade, BACKGROUND_FADE),
+    wall: mixRGBColors(COLORS.wall, lightFade, BACKGROUND_FADE),
+    segments: COLORS.segments.map(c => mixRGBColors(c, lightFade, BACKGROUND_FADE))
 };
+
+/** Selected rooms use the app accent (--app-accent) at a strength that keeps the pixel patterns readable. */
+export const SELECTED_SEGMENT_COLOR = mixRGBColors(hexToRgb("#246e53"), {r: 255, g: 255, b: 255}, 0.5);
+export const SELECTED_SEGMENT_ACCENT_COLOR = adjustRGBColorBrightness(SELECTED_SEGMENT_COLOR, -12);
+export const DARK_SELECTED_SEGMENT_COLOR = mixRGBColors(hexToRgb("#86cba2"), darkFade, 0.35);
+export const DARK_SELECTED_SEGMENT_ACCENT_COLOR = adjustRGBColorBrightness(DARK_SELECTED_SEGMENT_COLOR, 15);
 
 export const BACKGROUND_ACCENT_COLORS: LayerColors = {
     floor: adjustRGBColorBrightness(BACKGROUND_COLORS.floor, -7.5),
@@ -433,9 +456,9 @@ export const DARK_ACCENT_COLORS: LayerColors = {
 
 
 export const DARK_BACKGROUND_COLORS: LayerColors = {
-    floor: adjustRGBColorBrightness(DARK_COLORS.floor, -25),
-    wall: adjustRGBColorBrightness(DARK_COLORS.wall, -25),
-    segments: DARK_COLORS.segments.map(c => adjustRGBColorBrightness(c, -25))
+    floor: mixRGBColors(DARK_COLORS.floor, darkFade, BACKGROUND_FADE),
+    wall: mixRGBColors(DARK_COLORS.wall, darkFade, BACKGROUND_FADE),
+    segments: DARK_COLORS.segments.map(c => mixRGBColors(c, darkFade, BACKGROUND_FADE))
 };
 
 export const DARK_BACKGROUND_ACCENT_COLORS: LayerColors = {

@@ -11,3 +11,7 @@
 .p-select-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-content .p-inputtext, .app-content .p-select, .app-content .p-inputnumber-input { max-width: 100%; }
 .p-dialog .p-dialog-title { font-family: var(--font-heading); }
+
+.p-selectbutton .p-togglebutton-checked { background: var(--app-accent); color: var(--app-on-accent); border-color: var(--app-accent); }
+.p-selectbutton .p-togglebutton-checked .p-togglebutton-content { background: transparent; color: var(--app-on-accent); box-shadow: none; }
+.p-selectbutton .p-togglebutton-checked .p-togglebutton-label { color: var(--app-on-accent); }

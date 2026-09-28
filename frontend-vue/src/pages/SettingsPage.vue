@@ -27,18 +27,19 @@ const categories = computed<{key: Category; label: string}[]>(() => [
     {key: "map", label: translate("Map")},
     {key: "connectivity", label: translate("Connectivity")},
     {key: "robot", label: translate("Robot")},
-    {key: "valetudo", label: translate("Miscellaneous")}
+    {key: "valetudo", label: translate("General")}
 ]);
 const active = computed<Category>(() => categories.value.some(category => category.key === route.query.section) ? route.query.section as Category : "cleaning");
-const hasPresets = computed(() => props.capabilities.some(capability => [Capability.FanSpeedControl, Capability.WaterUsageControl, Capability.OperationModeControl].includes(capability)));
+const hasPresets = computed(() => props.capabilities.some(capability => [Capability.FanSpeedControl, Capability.WaterUsageControl, Capability.OperationModeControl, Capability.CleanRouteControl].includes(capability)));
 const systemOptions = [Capability.SpeakerVolumeControl, Capability.SpeakerTest, Capability.VoicePackManagement];
 const links = computed<Record<Exclude<Category, "cleaning">, Link[]>>(() => ({
     map: [
-        {label: translate("Map options"), description: translate("Manage maps and mapping behaviour"), to: "/options/map_management"},
+        {label: translate("Map options"), description: translate("Persistent map, mapping pass, reset and export"), to: "/options/map_management"},
         {label: translate("Segment management"), description: translate("Edit rooms, names and floor materials"), to: "/options/map_management/segments", anyCapability: [Capability.MapSegmentEdit, Capability.MapSegmentRename, Capability.MapSegmentMaterialControl]},
         {label: translate("Virtual restrictions"), description: translate("Set no-go zones and virtual walls"), to: "/options/map_management/virtual_restrictions", capability: Capability.CombinedVirtualRestrictions},
         {label: translate("Map annotations"), description: translate("Manage points and marks on the map"), to: "/options/map_management/annotations", capability: Capability.MapAnnotations},
-        {label: translate("Robot coverage map"), description: translate("View where the robot has cleaned"), to: "/options/map_management/robot_coverage"}
+        {label: translate("Robot coverage map"), description: translate("View where the robot has cleaned"), to: "/options/map_management/robot_coverage"},
+        ...(props.capabilities.includes(Capability.Duststreaming) && duststream.data.value?.enabled ? [{label: translate("Spectator map"), description: translate("Watch it clean"), to: "/options/map_management/spectator"}] : [])
     ],
     connectivity: [
         {label: translate("HTTP Basic Auth"), description: translate("Protect access with a username and password"), to: "/options/connectivity/auth"},
@@ -70,11 +71,11 @@ function select(category: Category) {void router.replace({path: "/options", quer
 
 <template>
     <div class="settings-page">
-        <PageHeader :title='$t("Settings")' :subtitle='$t("Settings are grouped by task and shown when supported by the robot.")' :kicker='$t("Robot")' />
+        <PageHeader :title='$t("Settings")' :subtitle='$t("Settings are grouped by task and shown when supported by the robot.")' />
         <div class="settings-layout">
-            <nav class="settings-categories" :aria-label='$t("Settings")'>
-                <button v-for="category in categories" :key="category.key" type="button" :aria-current="active === category.key ? 'page' : undefined" @click="select(category.key)">{{ category.label }}</button>
-            </nav>
+            <div role="tablist" class="settings-categories" :aria-label='$t("Settings")'>
+                <button v-for="category in categories" :key="category.key" type="button" role="tab" :aria-selected="active === category.key" @click="select(category.key)">{{ category.label }}</button>
+            </div>
             <div class="settings-main">
                 <template v-if="active === 'cleaning'">
                     <SettingsSection :title='$t("Cleaning")' :description='$t("Choose the available cleaning modes and schedules.")'>
@@ -90,8 +91,8 @@ function select(category: Category) {void router.replace({path: "/options", quer
                         <RouterLink v-for="link in visibleLinks" :key="link.to" class="nav-card" :to="link.to"><span class="min-w-0"><strong class="block">{{ link.label }}</strong><small class="muted block">{{ link.description }}</small></span><AppIcon name="chevron-right" /></RouterLink>
                     </div>
                 </SettingsSection>
-                <SettingsSection v-if="active === 'valetudo'" class="settings-mobile-preferences" :title='$t("Preferences")'>
-                    <PreferenceSelects layout="rows" />
+                <SettingsSection v-if="active === 'valetudo'" class="settings-preferences" :title='$t("Preferences")'>
+                    <PreferenceSelects />
                 </SettingsSection>
             </div>
         </div>
@@ -103,19 +104,17 @@ function select(category: Category) {void router.replace({path: "/options", quer
 .settings-layout { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; }
 .settings-categories { display: grid; align-content: start; gap: 4px; }
 .settings-categories button { min-height: 42px; padding: 8px 12px; border: 0; border-radius: 9px; background: transparent; color: var(--app-secondary); font-weight: 600; text-align: left; cursor: pointer; }
-.settings-categories button:hover, .settings-categories button[aria-current="page"] { background: var(--app-accent-soft); color: var(--app-accent); }
+.settings-categories button:hover, .settings-categories button[aria-selected="true"] { background: var(--app-accent-soft); color: var(--app-accent); }
 .settings-main { display: grid; align-content: start; gap: 16px; min-width: 0; }
 .settings-link-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.settings-mobile-preferences { display: none; }
 
 @media (max-width: 1100px) {
     .settings-layout { grid-template-columns: 150px minmax(0, 1fr); }
 }
 @media (max-width: 700px) {
     .settings-layout { display: block; }
-    .settings-categories { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
-    .settings-categories button { font-size: var(--text-sm); text-align: center; }
+    .settings-categories { display: flex; overflow-x: auto; gap: 4px; scrollbar-width: none; margin-bottom: 14px; }
+    .settings-categories button { flex: none; white-space: nowrap; padding: 8px 14px; font-size: var(--text-sm); text-align: center; }
     .settings-link-grid { grid-template-columns: 1fr; }
-    .settings-mobile-preferences { display: block; }
 }
 </style>

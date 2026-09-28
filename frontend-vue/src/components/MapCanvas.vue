@@ -30,6 +30,9 @@ const emit = defineEmits<{
     "zone-created": [zone: MapZone];
     "point-selected": [point: Point];
     "zone-remove": [index: number];
+    "line-remove": [];
+    "entity-remove": [index: number];
+    ready: [];
     "shape-created": [shape: MapZone];
     "entity-updated": [index: number, points: number[]];
 }>();
@@ -45,6 +48,8 @@ let spaceHeld = false;
 let forcePan = false;
 let observer: ResizeObserver | undefined;
 let layerUpdate = Promise.resolve();
+/** The raster layers render in a worker; until the first frame arrives, drawing overlays alone would show carpets and icons on an empty map. */
+const layersReady = ref(false);
 let disposed = false;
 let frame = 0;
 let theme: MapTheme | undefined;
@@ -285,21 +290,46 @@ function drawForegroundIcons(ctx: CanvasRenderingContext2D) {
     }
 }
 
-/** Position of a zone's remove button in CSS pixels, kept inside the canvas. */
-function zoneDeletePoint(zone: MapZone): Point {
-    const topRight = toCssPoint({x: zone.b.x, y: zone.a.y});
+/** Keeps a remove button, given in CSS pixels, inside the canvas. */
+function clampDeletePoint(point: Point): Point {
     const width = canvas.value?.clientWidth ?? viewport.width / viewport.dpr;
     const height = canvas.value?.clientHeight ?? viewport.height / viewport.dpr;
     const margin = ZONE_DELETE_RADIUS + 4;
-    return {
-        x: Math.max(margin, Math.min(width - margin, topRight.x - ZONE_DELETE_RADIUS)),
-        y: Math.max(margin, Math.min(height - margin, topRight.y + ZONE_DELETE_RADIUS))
-    };
+    return {x: Math.max(margin, Math.min(width - margin, point.x)), y: Math.max(margin, Math.min(height - margin, point.y))};
 }
 
-function drawZoneDeleteButton(ctx: CanvasRenderingContext2D, zone: MapZone) {
+/** A zone's remove button sits inside its top-right corner. */
+function zoneDeletePoint(zone: MapZone): Point {
+    const topRight = toCssPoint({x: zone.b.x, y: zone.a.y});
+    return clampDeletePoint({x: topRight.x - ZONE_DELETE_RADIUS, y: topRight.y + ZONE_DELETE_RADIUS});
+}
+
+/** Lines and editable entities can be thin, so their remove button sits just outside the end or the top-right corner. */
+function lineDeletePoint(line: MapZone): Point {
+    const end = toCssPoint(line.b);
+    return clampDeletePoint({x: end.x + ZONE_DELETE_RADIUS + 4, y: end.y - ZONE_DELETE_RADIUS - 4});
+}
+
+function entityDeletePoint(entity: RawMapEntity): Point {
+    const box = entityBounds(entity.points);
+    const topRight = toCssPoint({x: box.maxX / props.map.pixelSize, y: box.minY / props.map.pixelSize});
+    return clampDeletePoint({x: topRight.x + ZONE_DELETE_RADIUS + 4, y: topRight.y - ZONE_DELETE_RADIUS - 4});
+}
+
+function hitsDeletePoint(point: Point, button: Point): boolean {
+    return (point.x - button.x) ** 2 + (point.y - button.y) ** 2 <= (ZONE_DELETE_RADIUS + 4) ** 2;
+}
+
+function hitEntityDeleteButton(point: Point): number {
+    const entities = props.mode === "pan" ? props.editableEntities ?? [] : [];
+    for (let index = entities.length - 1; index >= 0; index--) {
+        if (hitsDeletePoint(point, entityDeletePoint(entities[index]))) return index;
+    }
+    return -1;
+}
+
+function drawDeleteButton(ctx: CanvasRenderingContext2D, point: Point) {
     const {accent, surface} = colors();
-    const point = zoneDeletePoint(zone);
     ctx.save();
     ctx.setTransform(viewport.dpr, 0, 0, viewport.dpr, point.x * viewport.dpr, point.y * viewport.dpr);
     ctx.beginPath();
@@ -327,7 +357,7 @@ function drawInteractionOverlays(ctx: CanvasRenderingContext2D) {
         ctx.fillRect(zone.a.x, zone.a.y, zone.b.x - zone.a.x, zone.b.y - zone.a.y);
         ctx.strokeRect(zone.a.x, zone.a.y, zone.b.x - zone.a.x, zone.b.y - zone.a.y);
     }
-    if (props.mode === "zones") props.zones.forEach(zone => drawZoneDeleteButton(ctx, zone));
+    if (props.mode === "zones") props.zones.forEach(zone => drawDeleteButton(ctx, zoneDeletePoint(zone)));
     const preview = gestures.preview;
     if (!forcePan && DRAW_MODES.includes(props.mode) && preview) {
         const a = mapPoint(preview.start);
@@ -350,7 +380,9 @@ function drawInteractionOverlays(ctx: CanvasRenderingContext2D) {
         ctx.moveTo(props.editLine.a.x, props.editLine.a.y);
         ctx.lineTo(props.editLine.b.x, props.editLine.b.y);
         ctx.stroke();
+        if (props.mode !== "line") drawDeleteButton(ctx, lineDeletePoint(props.editLine));
     }
+    if (props.mode === "pan") (props.editableEntities ?? []).forEach(entity => drawDeleteButton(ctx, entityDeletePoint(entity)));
 }
 
 function drawActivationNotice(ctx: CanvasRenderingContext2D, element: HTMLCanvasElement) {
@@ -371,6 +403,7 @@ function draw() {
     if (!element || !ctx || !viewport.initialized) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, element.width, element.height);
+    if (!layersReady.value) return;
     ctx.setTransform(viewport.scale, 0, 0, viewport.scale, viewport.offsetX, viewport.offsetY);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(layers.getCanvas(), 0, 0);
@@ -389,6 +422,11 @@ function renderLayers() {
         const input = prepareMapWorkerInput(props.map, props.selectedSegmentIds);
         layers.setSelectedSegmentIds(input.selectedSegmentIds);
         await layers.draw(input.map, props.paletteMode);
+        if (disposed) return;
+        if (!layersReady.value) {
+            layersReady.value = true;
+            emit("ready");
+        }
         scheduleDraw();
     }).catch(() => { /* A later map update can retry rendering. */ });
 }
@@ -474,7 +512,7 @@ function onPointerDown(event: PointerEvent) {
     canvas.value?.setPointerCapture(event.pointerId);
     const point = eventPoint(event);
     gestures.startPointer(event.pointerId, point);
-    if (!forcePan && props.mode === "pan" && props.editableEntities?.length && gestures.pointerCount === 1) {
+    if (!forcePan && props.mode === "pan" && props.editableEntities?.length && gestures.pointerCount === 1 && hitEntityDeleteButton(point) < 0) {
         const world = mapPoint(point);
         const index = findEditableEntity(world);
         if (index >= 0) draggedEntity = {index, start: world, points: [...props.editableEntities[index].points]};
@@ -519,8 +557,7 @@ function onPointerMove(event: PointerEvent) {
 
 function hitZoneDeleteButton(point: Point): number {
     for (let index = props.zones.length - 1; index >= 0; index--) {
-        const button = zoneDeletePoint(props.zones[index]);
-        if ((point.x - button.x) ** 2 + (point.y - button.y) ** 2 <= (ZONE_DELETE_RADIUS + 4) ** 2) return index;
+        if (hitsDeletePoint(point, zoneDeletePoint(props.zones[index]))) return index;
     }
     return -1;
 }
@@ -552,6 +589,15 @@ function handleGestureEnd(point: Point, tap: boolean, start: Point, moved: numbe
             emit("zone-remove", index);
             return;
         }
+    }
+    if (tap && props.editLine && props.mode !== "line" && hitsDeletePoint(point, lineDeletePoint(props.editLine))) {
+        emit("line-remove");
+        return;
+    }
+    const entityIndex = tap ? hitEntityDeleteButton(point) : -1;
+    if (entityIndex >= 0) {
+        emit("entity-remove", entityIndex);
+        return;
     }
     if (DRAW_MODES.includes(props.mode) && moved > 8) {
         const a = mapPoint(start);
@@ -599,7 +645,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <canvas ref="canvas" class="h-full w-full touch-none" :aria-label='$t("Robot map; arrows pan, plus and minus zoom, zero fits")' tabindex="0"
+    <canvas ref="canvas" class="map-canvas h-full w-full touch-none" :class="{'map-canvas--ready': layersReady}" :aria-label='$t("Robot map; arrows pan, plus and minus zoom, zero fits")' tabindex="0"
         @contextmenu.prevent @wheel="onWheel" @pointerdown="onPointerDown" @pointermove="onPointerMove"
         @pointerup="onPointerUp" @pointercancel="event => onPointerUp(event, true)" @keydown="onKeyDown" />
 </template>
+
+<style scoped>
+.map-canvas { opacity: 0; transition: opacity .2s ease-out; }
+.map-canvas--ready { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+    .map-canvas { transition: none; }
+}
+</style>

@@ -31,5 +31,9 @@ defineProps<{name: IconName}>();
         <path v-else-if="name === 'bell'" d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
         <path v-else-if="name === 'chevron-left'" d="m15 18-6-6 6-6" />
         <path v-else-if="name === 'chevron-right'" d="m9 18 6-6-6-6" />
+        <template v-else-if="name === 'alert'"><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></template>
+        <template v-else-if="name === 'refresh'"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4" /></template>
+        <template v-else-if="name === 'info'"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></template>
+        <template v-else-if="name === 'award'"><circle cx="12" cy="9" r="6" /><path d="m8.5 14-1.5 8 5-3 5 3-1.5-8" /></template>
     </svg>
 </template>

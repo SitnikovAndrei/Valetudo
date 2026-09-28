@@ -30,6 +30,8 @@ defineEmits<{
 const canvas = ref<InstanceType<typeof MapCanvas>>();
 defineExpose({fitMap: () => canvas.value?.fitMap()});
 const expanded = ref(false);
+/** The carpet legend waits for the first rendered map frame so it does not appear before the map itself. */
+const rendered = ref(false);
 const moveMap = ref(false);
 watch(() => props.mode, () => {moveMap.value = false;});
 const carpetMaterials = [RawMapLayerMaterial.Carpet, RawMapLayerMaterial.CarpetLow, RawMapLayerMaterial.CarpetHigh];
@@ -66,8 +68,8 @@ onBeforeUnmount(() => {
         <div v-else class="map-panel-viewport">
             <MapCanvas ref="canvas" :map="map" :palette-mode="paletteMode" :mode="moveMap ? 'pan' : mode" :selected-segment-ids="selectedSegmentIds" :zones="zones" :target="target"
                 @segment-click="id => $emit('segment-click', id)" @zone-created="zone => $emit('zone-created', zone)"
-                @zone-remove="index => $emit('zone-remove', index)" @point-selected="point => $emit('point-selected', point)" />
-            <div v-if="hasCarpets" class="map-overlay map-carpet-legend"><span aria-hidden="true" />{{ $t("Carpets") }}</div>
+                @zone-remove="index => $emit('zone-remove', index)" @point-selected="point => $emit('point-selected', point)" @ready="rendered = true" />
+            <div v-if="hasCarpets && rendered" class="map-overlay map-carpet-legend"><span aria-hidden="true" />{{ $t("Carpets") }}</div>
             <div class="map-overlay map-zoom" role="group" :aria-label='$t("Map zoom")'>
                 <button v-if="mode === 'zones' || mode === 'goto'" type="button" :aria-label='$t("Move map")' :title='$t("Move map")' :aria-pressed="moveMap" @click="moveMap = !moveMap"><AppIcon name="hand" /></button>
                 <button type="button" :aria-label='$t("Zoom in")' :title='$t("Zoom in")' @click="canvas?.zoomIn()"><AppIcon name="plus" /></button>
